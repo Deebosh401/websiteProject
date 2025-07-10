@@ -10,7 +10,6 @@
         v-for="(city, index) in cities"
         :key="index"
         class="card"
-        :class="{ 'first-card': index === 0, 'last-card': index === cities.length - 1 }"
       >
         <div class="card-image-container">
           <template v-if="city.image.endsWith('.mp4')">
@@ -56,8 +55,8 @@ export default defineComponent({
       { name: 'Экскурсии', description: 'City of Light', image: '/Excursions.mp4', attractions: 50 },
       { name: 'Где поесть', description: 'The Big Apple', image: '/food.mp4', attractions: 70 },
       { name: 'Размещение', description: 'Land of the Rising Sun', image: '/hotels.mp4', attractions: 60 },
-      { name: 'Идём семьёй', description: 'The Eternal City', image: '/activity.mp4', attractions: 30 },
-      { name: 'Музеи и выставки', description: 'The Eternal City', image: '/museums.mp4', attractions: 30 }
+      { name: 'Активный отдых', description: 'The Eternal City', image: '/activity.mp4', attractions: 30 },
+      { name: 'Исторические места', description: 'The Eternal City', image: '/Historical.mp4', attractions: 30 }
     ])
 
     const currentIndex = ref(0)
@@ -179,8 +178,8 @@ export default defineComponent({
 }
 
 .card:hover {
-  animation: shakeCard 0.4s ease-in-out;
-  box-shadow: 0 0 16px rgba(255, 140, 0, 0.4);
+  animation: popBounce 0.5s ease;
+  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
 }
 
 .card-image-container {
@@ -231,24 +230,20 @@ export default defineComponent({
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
+  background-color: transparent; 
+  color: white;
   border:thick double white;
-  background-color: rgba(225, 245, 254, 0.795);
-  color: rgba(6, 64, 71, 0.636);
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
   transition: transform 0.3s ease, background-color 0.3s ease;
-  backdrop-filter: blur(4px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .overlay-button:hover {
   transform: translateX(-50%) scale(1.05);
-  background: linear-gradient(135deg,rgba(222, 145, 22, 0.671),rgba(237, 215, 13, 0.79),rgba(28, 193, 94, 0.671));
-  font-weight:700;
+  background-color: transparent;
+  font:bold;
 }
 
 .cities-header {
@@ -290,7 +285,7 @@ export default defineComponent({
 }
 
 .end-spacer {
-  flex: 0 0 0.1vw; /* Adjust for more/less breathing room */
+  flex: 0 0 0.1vw; 
   pointer-events: none;
 }
 
@@ -309,11 +304,10 @@ export default defineComponent({
   }
 }
 
-@keyframes shakeCard {
-  0% { transform: rotate(0deg); }
-  25% { transform: rotate(1deg); }
-  50% { transform: rotate(-1.5deg); }
-  75% { transform: rotate(1deg); }
-  100% { transform: rotate(0deg); }
+@keyframes popBounce {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.03) translateY(-2px); }
+  70%  { transform: scale(0.98) translateY(0px); }
+  100% { transform: scale(1); }
 }
 </style>
