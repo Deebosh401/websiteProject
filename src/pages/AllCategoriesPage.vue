@@ -64,7 +64,6 @@ function goBack() {
   router.push('/')
 }
 
-// New groupedRows computed to create pattern [1, 2, 3]
 const rowPattern = [1, 2, 3, 4]
 
 const groupedRows = computed(() => {
