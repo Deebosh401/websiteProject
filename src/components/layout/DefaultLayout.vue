@@ -28,6 +28,6 @@ export default {
 <style scoped>
   .main-content{
     padding-top: 8px;
-    background-color: rgba(214, 100, 0, 0.066);
+    background-color: rgba(243, 181, 127, 0.066);
   }
 </style>
