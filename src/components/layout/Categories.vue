@@ -238,7 +238,9 @@ export default defineComponent({
   cursor: pointer;
   font-weight: bold;
   transition: transform 0.3s ease, background-color 0.3s ease;
-}
+  text-overflow: ellipsis;
+  white-space: nowrap;
+} 
 
 .overlay-button:hover {
   transform: translateX(-50%) scale(1.05);

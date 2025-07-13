@@ -148,13 +148,13 @@ onUnmounted(() => {
 
 .scroll-nav button {
   background: rgba(225,245,254,255);
-  color: rgba(54,123,130,255);
+  color: black;
   border: none;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   white-space: nowrap;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 550;
   transition: background 0.2s ease;
 }
 
