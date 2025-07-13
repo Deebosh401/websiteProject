@@ -12,7 +12,6 @@
         class="cities-row"
         v-for="(row, rowIndex) in groupedRows"
         :key="rowIndex"
-        :class="`row-${(rowIndex % 4) + 1}`"
       >
         <div
           class="city-tile"
@@ -64,18 +63,11 @@ function goBack() {
   router.push('/')
 }
 
-const rowPattern = [1, 2, 3, 4]
-
+// Group items in rows of 3
 const groupedRows = computed(() => {
   const rows = []
-  let i = 0
-  let patternIndex = 0
-
-  while (i < props.items.length) {
-    const count = rowPattern[patternIndex % rowPattern.length]
-    rows.push(props.items.slice(i, i + count))
-    i += count
-    patternIndex++
+  for (let i = 0; i < props.items.length; i += 3) {
+    rows.push(props.items.slice(i, i + 3))
   }
   return rows
 })
@@ -162,25 +154,10 @@ onUnmounted(() => {
 
 .cities-row {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
   padding: 0 0.4rem;
   margin-bottom: 0.6rem;
-}
-
-.cities-row.row-1 {
-  grid-template-columns: repeat(1, 1fr);
-}
-
-.cities-row.row-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.cities-row.row-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.cities-row.row-4 {
-  grid-template-columns: repeat(4, 1fr);
 }
 
 .city-tile {
@@ -217,9 +194,13 @@ onUnmounted(() => {
   text-align: center;
   font-weight: 600;
   font-size: 0.7rem;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+
+  white-space: normal; /* allow wrapping */
+  overflow: hidden; 
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-line-clamp: 2; /* show up to 2 lines */
+  -webkit-box-orient: vertical;
 }
 
 .badge {

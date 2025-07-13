@@ -16,17 +16,19 @@ import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 
 const cities = ref([
-  { name: 'Экскурсии', attractions: 70, icon: 'ph:map-trifold' },
-  { name: 'Исторические места', attractions: 245, icon: 'mdi:castle' },
-  { name: 'Вечерний город', attractions: 123, icon: 'ph:moon-stars' },
-  { name: 'Где поесть', attractions: 53, icon: 'ph:fork-knife' },
-  { name: 'Размещение', attractions: 321, icon: 'ph:bed' },
-  { name: 'Концерты', attractions: 76, icon: 'ph:music-notes' },
-  { name: 'Идём семьёй', attractions: 72, icon: 'ph:users-three' },
-  { name: 'Вечерний город', attractions: 123, icon: 'ph:moon-stars' },
-  { name: 'Вечерний город', attractions: 123, icon: 'ph:moon-stars' },
-  { name: 'Вечерний город', attractions: 123, icon: 'ph:moon-stars' },
- 
+  { name: 'Экскурсии', attractions: 70, icon: 'mdi:hiking' },
+  { name: 'Где поесть', attractions: 245, image: './Category.resto.jpeg' },
+  { name: 'Размещение', attractions: 123, image: './Category.hotels.jpeg' },
+  { name: 'Активный отдых', attractions: 53, image: './Category.activity.jpeg' },
+  { name: 'Исторические места', attractions: 321, icon: 'mdi:castle' },
+  { name: 'Концерты', attractions: 76, image: './Category.concerts.jpeg' },
+  { name: 'Театры', attractions: 123, icon: 'ph:moon-stars' },
+  { name: 'Семейный выход', attractions: 123, image: './Category.family.jpeg' },
+  { name: 'Кино', attractions: 123, image: './Category.movie.jpeg' },
+  { name: 'Мастер-классы', attractions: 123, image: './Category.Workshop.jpeg' },
+  { name: 'Музеи', attractions: 123, image: './Category.museums.jpeg' },
+  { name: 'Парки/cкверы', attractions: 123, icon: 'ph:park' },
+  { name: 'Аренда авто', attractions: 123, icon: 'ph:car' },
 ])
 
 
