@@ -52,9 +52,7 @@ export default defineComponent({
       router.push({ name: 'all-cities' });
     };
 
-    const goToCity = (city: City) => {
-      console.log(`Navigating to ${city.name} with ${city.attractions} attractions.`);
-    };
+    const goToCity = (city: City) => {router.push({ name: 'city-detail', params: { name: city.name } })}
 
     return { cities, goToCity,goToAllCities };
   }

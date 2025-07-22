@@ -22,13 +22,13 @@ const cities = ref([
   { name: 'Активный отдых', attractions: 53, image: './Category.activity.jpeg' },
   { name: 'Исторические места', attractions: 321, icon: 'mdi:castle' },
   { name: 'Концерты', attractions: 76, image: './Category.concerts.jpeg' },
-  { name: 'Театры', attractions: 123, icon: 'ph:moon-stars' },
+  { name: 'Театры', attractions: 123, image: './Theater.jpeg' },
   { name: 'Семейный выход', attractions: 123, image: './Category.family.jpeg' },
-  { name: 'Кино', attractions: 123, image: './Category.movie.jpeg' },
-  { name: 'Мастер-классы', attractions: 123, image: './Category.Workshop.jpeg' },
-  { name: 'Музеи', attractions: 123, image: './Category.museums.jpeg' },
-  { name: 'Парки/cкверы', attractions: 123, icon: 'ph:park' },
-  { name: 'Аренда авто', attractions: 123, icon: 'ph:car' },
+  { name: 'Кино', attractions: 123, image: './Movie.jpeg' },
+  { name: 'Мастер-классы', attractions: 123, image: './Workshop.jpeg' },
+  { name: 'Музеи', attractions: 123, image: './Museums.jpeg' },
+  { name: 'Парки/cкверы', attractions: 123, image: './Parks.jpeg' },
+  { name: 'Отпускной транспорт', attractions: 123, image: './transport.jpeg' },
 ])
 
 

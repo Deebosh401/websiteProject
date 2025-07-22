@@ -18,7 +18,7 @@
               loop
               muted
               playsinline
-              preload="none"
+              preload="meta"
               class="city-image"
               ref="videoRefs"
               :data-index="index"
@@ -52,14 +52,14 @@ interface City {
 export default defineComponent({
   setup() {
     const cities = ref<City[]>([
-      { name: 'Экскурсии', description: 'City of Light', image: '/Excursions.mp4', attractions: 50 },
-      { name: 'Где поесть', description: 'The Big Apple', image: '/food.mp4', attractions: 70 },
-      { name: 'Размещение', description: 'Land of the Rising Sun', image: '/hotels.mp4', attractions: 60 },
-      { name: 'Исторические места', description: 'The Old Smoke', image: '/historicalSites.mp4', attractions: 40 },
-      { name: 'Концерты', description: 'The Eternal City', image: '/music.mp4', attractions: 30 },
-      { name: 'Идём семьёй', description: 'The Eternal City', image: '/activity.mp4', attractions: 30 },
-      { name: 'Вечерний город', description: 'The Eternal City', image: '/NightCity.mp4', attractions: 30 },
-      { name: 'Музеи и выставки', description: 'The Eternal City', image: '/museums.mp4', attractions: 30 }
+      { name: 'Экскурсии', description: 'City of Light', image: '/', attractions: 50 },
+      { name: 'Где поесть', description: 'The Big Apple', image: '', attractions: 70 },
+      { name: 'Размещение', description: 'Land of the Rising Sun', image: '/', attractions: 60 },
+      { name: 'Исторические места', description: 'The Old Smoke', image: '/', attractions: 40 },
+      { name: 'Концерты', description: 'The Eternal City', image: '/', attractions: 30 },
+      { name: 'Идём семьёй', description: 'The Eternal City', image: '/', attractions: 30 },
+      { name: 'Вечерний город', description: 'The Eternal City', image: '/', attractions: 30 },
+      { name: 'Музеи и выставки', description: 'The Eternal City', image: '/', attractions: 30 }
     ])
 
     const currentIndex = ref(0)

@@ -12,6 +12,7 @@ const routes = [
         {path:"", name:"home", component: HomePage,},
         {path: "cities", name: "all-cities", component: AllCitiesRoutePage },
         {path: "categories", name: "all-categories", component: AllCategoriesRoutePage },
+        {path: '/city/:name',name: 'city-detail',component: () => import('../pages/CityDetailPage.vue')},
         ]
     }
 ]
