@@ -51,7 +51,7 @@ const showTopButton = ref(false)
 const scrollTo = (id) => {
   const el = document.getElementById(id)
   if (el) {
-    const yOffset = -80 // height of fixed header
+    const yOffset = -80 
     const y = el.getBoundingClientRect().top + window.scrollY + yOffset
     window.scrollTo({ top: y, behavior: 'smooth' })
   }

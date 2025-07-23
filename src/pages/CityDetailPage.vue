@@ -1,6 +1,5 @@
 <template>
   <div class="city-detail-page">
-    <!-- Hero Section -->
     <div class="city-hero" :style="{ backgroundImage: `url(${city?.image})` }">
       <div class="city-hero-overlay">
         <h1
@@ -106,13 +105,13 @@ function onCategoryClick(category: any) {
 <style scoped>
 .city-detail-page {
   font-family: sans-serif;
+  padding-top:4.3rem;
 }
 
-/* HERO */
 .city-hero {
   position: relative;
-  height: 35vh;
-  min-height: 220px;
+  height: 30vh;
+  min-height: 200px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
