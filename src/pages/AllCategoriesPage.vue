@@ -63,7 +63,6 @@ function goBack() {
   router.push('/')
 }
 
-// Group items in rows of 3
 const groupedRows = computed(() => {
   const rows = []
   for (let i = 0; i < props.items.length; i += 3) {

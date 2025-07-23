@@ -16,19 +16,20 @@ import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 
 const cities = ref([
-  { name: 'Экскурсии', attractions: 70, icon: 'mdi:hiking' },
-  { name: 'Где поесть', attractions: 245, image: './Category.resto.jpeg' },
-  { name: 'Размещение', attractions: 123, image: './Category.hotels.jpeg' },
-  { name: 'Активный отдых', attractions: 53, image: './Category.activity.jpeg' },
+ { name: 'Экскурсии', attractions: 70, image: '/Excursions.jpeg' },
+  { name: 'Где поесть', attractions: 245, image: '/Category.resto.jpeg' },
+  { name: 'Размещение', attractions: 123, image: '/Category.hotels.jpeg' },
+  { name: 'Активный отдых', attractions: 53, image: '/Category.activity.jpeg' },
   { name: 'Исторические места', attractions: 321, icon: 'mdi:castle' },
-  { name: 'Концерты', attractions: 76, image: './Category.concerts.jpeg' },
-  { name: 'Театры', attractions: 123, image: './Theater.jpeg' },
-  { name: 'Семейный выход', attractions: 123, image: './Category.family.jpeg' },
-  { name: 'Кино', attractions: 123, image: './Movie.jpeg' },
-  { name: 'Мастер-классы', attractions: 123, image: './Workshop.jpeg' },
-  { name: 'Музеи', attractions: 123, image: './Museums.jpeg' },
-  { name: 'Парки/cкверы', attractions: 123, image: './Parks.jpeg' },
-  { name: 'Отпускной транспорт', attractions: 123, image: './transport.jpeg' },
+  { name: 'Концерты', attractions: 76, image: '/Category.concerts.jpeg' },
+  { name: 'Театры', attractions: 123, image: '/Theater.jpeg' },
+  { name: 'Семейный выход', attractions: 123, image: '/Category.family.jpeg' },
+  { name: 'Кино', attractions: 123, image: '/Movie.jpeg' },
+  { name: 'Мастер-классы', attractions: 123, image: '/Workshop.jpeg' },
+  { name: 'Музеи', attractions: 123, image: '/Museums.jpeg' },
+  { name: 'Парки/cкверы', attractions: 123, image: '/Parks.jpeg' },
+  { name: 'Отпускной транспорт', attractions: 123, image: '/transport.jpeg' },
+  { name: 'Выставки', attractions: 123, image: '/Exhibition.jpeg' },
 ])
 
 

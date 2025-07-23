@@ -1,17 +1,14 @@
 import { createRouter,createWebHistory } from "vue-router"
 import DefaultLayout from "../components/layout/DefaultLayout.vue"
-import HomePage from "../pages/HomePage.vue"
-import AllCitiesRoutePage from "../pages/AllCitiesRoutePage.vue"
-import AllCategoriesRoutePage from "../pages/AllCategoriesRoutePage.vue"
 
 const routes = [
 
     {   path:"/",
         component: DefaultLayout,
         children: [
-        {path:"", name:"home", component: HomePage,},
-        {path: "cities", name: "all-cities", component: AllCitiesRoutePage },
-        {path: "categories", name: "all-categories", component: AllCategoriesRoutePage },
+        {path:"", name:"home", component: ()=> import("../pages/HomePage.vue"),},
+        {path: "cities", name: "all-cities", component:()=> import("../pages/AllCitiesRoutePage.vue") },
+        {path: "categories", name: "all-categories", component:()=> import("../pages/AllCategoriesRoutePage.vue")},
         {path: '/city/:name',name: 'city-detail',component: () => import('../pages/CityDetailPage.vue')},
         ]
     }
