@@ -2,8 +2,8 @@
     <div class="home-page">
       <div class="site-motto pushkin-motto">
         <div class="motto-line">
-          <h2>Мир ближе, чем кажется. </h2>
-          <h3> Путешествуйте со вкусом…</h3>
+          <!-- <h2>Мир ближе, чем кажется. </h2> -->
+          <h3> Путешествуйте со вкусом</h3>
         </div>
       </div>
 
@@ -27,11 +27,10 @@
       <div id="guides"><Guides /></div>
       <div id="slang"><SlangJokes /></div>
       <div id="firsthand"><FirstHandExperience /></div>
-      <div id="map"><Map/></div>
+      <div id="map"><Map /></div>
 
     <!-- Back to Top Button -->
     <button v-if="showTopButton" class="back-to-top" @click="scrollToTop"><span class="arrow-icon"></span> </button>
-
     </div>
   </template>
   

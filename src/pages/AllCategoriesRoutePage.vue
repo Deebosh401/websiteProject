@@ -20,7 +20,7 @@ const cities = ref([
   { name: 'Где поесть', attractions: 245, image: '/Category.resto.jpeg' },
   { name: 'Размещение', attractions: 123, image: '/Category.hotels.jpeg' },
   { name: 'Активный отдых', attractions: 53, image: '/Category.activity.jpeg' },
-  { name: 'Исторические места', attractions: 321, icon: 'mdi:castle' },
+  { name: 'Исторические места', attractions: 321, image: '/historical_sites.jpeg' },
   { name: 'Концерты', attractions: 76, image: '/Category.concerts.jpeg' },
   { name: 'Театры', attractions: 123, image: '/Theater.jpeg' },
   { name: 'Семейный выход', attractions: 123, image: '/Category.family.jpeg' },

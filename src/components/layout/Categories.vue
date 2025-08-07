@@ -175,6 +175,7 @@ export default defineComponent({
   scroll-snap-align: center;
   display: flex;
   flex-direction: column;
+  aspect-ratio: 1/1;
 }
 
 .card:hover {

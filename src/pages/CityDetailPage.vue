@@ -1,131 +1,252 @@
 <template>
   <div class="city-detail-page">
+    <!-- HERO -->
     <div class="city-hero" :style="{ backgroundImage: `url(${city?.image})` }">
-      <div class="city-hero-overlay">
-        <h1
-          class="city-name"
-          :style="{
-            transform: `translateY(${Math.min(scrollY, 50) * -0.5}px)`,
-            opacity: `${1 - Math.min(scrollY, 100) / 100}`,
-          }"
-        >
-          {{ city?.name }}
-        </h1>
+      <div
+        class="city-hero-overlay"
+        :style="{
+          transform: `translateY(${Math.min(scrollY, 50) * -0.5}px)`,
+          opacity: `${1 - Math.min(scrollY, 100) / 100}`,
+        }"
+      >
+        <h1 class="city-name">{{ city?.name }}</h1>
       </div>
     </div>
 
-    <!-- Description -->
     <div class="city-description">
       <p>{{ city?.description }}</p>
     </div>
 
-    <!-- Categories -->
-    <div class="category-grid">
+    <!-- CATEGORY BAR -->
+    <div class="category-scroll">
       <div
-        class="category-card"
-        v-for="(category, index) in categories"
-        :key="index"
-        @click="onCategoryClick(category)"
-        :style="{ backgroundImage: category.image ? `url(${category.image})` : '' }"
+        class="scroll-button"
+        v-for="category in categories"
+        :key="category.name"
+        :class="{ active: selectedCategory === category.name }"
+        @click="selectedCategory = category.name"
       >
-        <!-- Attractions Badge -->
-        <div class="attraction-badge" v-if="category.attractions">
-          {{ category.attractions }}
-        </div>
-
-        <!-- Optional icon -->
-        <Icon v-if="category.icon" :icon="category.icon" class="category-icon" />
-
-        <!-- Label -->
-        <span class="category-label">{{ category.name }}</span>
+        {{ category.name }}
       </div>
     </div>
+
+    <!-- SORTING DROPDOWN -->
+    <div class="sort-bar">
+  <label for="sort-select">Сортировать:</label>
+  <div class="select-wrapper">
+    <select id="sort-select" v-model="sortOption">
+      <option v-for="option in sortOptions" :key="option" :value="option">
+        {{ option }}
+      </option>
+    </select>
+    <span class="select-arrow">▼</span>
+  </div>
+  <button class="sort-order-toggle" @click="sortAscending = !sortAscending">
+    {{ sortAscending ? '↑' : '↓' }}
+  </button>
+ 
+</div>
+ <div class="filter-bar">
+  <button class="filter-btn" @click="handleFilterClick">Фильтр</button>
+</div>
+
+<FilterModal
+  v-if="showFilterModal"
+  :category="selectedCategory"
+  :existingFilters="activeFilters"
+  @apply="applyFilters"
+  @close="showFilterModal = false"
+/>
+
+
+    <!-- ATTRACTIONS -->
+<div
+  :class="['attraction-grid', { horizontal: selectedCategory === '👍🏼', vertical: selectedCategory !== '👍🏼' }]"
+>
+  <div
+    class="attraction-card"
+    v-for="attraction in filteredAttractions"
+    :key="attraction.id"
+    @click="goToAttraction(attraction)"
+  >
+    <img
+      :src="attraction.image || '/default.jpg'"
+      class="card-image"
+      loading="lazy"
+      alt="attraction image"
+    />
+    <div class="card-content">
+      <h3>{{ attraction.name }}</h3>
+      <p v-if="attraction.date">📅 {{ formatDateTimeRu(attraction.date) }}</p>
+      <p v-if="attraction.going">✅ {{ attraction.going }} участников</p>
+      <p v-if="attraction.price === 0">Бесплатно</p>
+      <p v-else-if="attraction.price">💶 {{ attraction.price }} ₽</p>
+    </div>
+  </div>
+</div>
+
+    <button class="back-floating-btn" @click="goBack">
+  ← Назад
+</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
-import { Icon } from '@iconify/vue'
+import { ref,  onMounted, onUnmounted, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { allAttractions,type Attraction, } from '../Data'
+
+import FilterModal from '../components/FilterModal.vue'
+import { filterOptions } from '../filterConfig'
+
+const showFilterModal = ref(false)
+const activeFilters = ref<Record<string, any>>({})
+
+function applyFilters(newFilters: Record<string, any>) {
+  activeFilters.value = newFilters
+  showFilterModal.value = false
+}
+
+const router = useRouter()
+const route = useRoute()
 
 const scrollY = ref(0)
-
 function handleScroll() {
   scrollY.value = window.scrollY
 }
+onMounted(() => window.addEventListener('scroll', handleScroll))
+onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 
-onMounted(() => {
-  window.addEventListener('scroll', handleScroll)
-})
-onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
-})
+function goBack() {
+  router.back()
+}
 
-const route = useRoute()
 const cityName = route.params.name as string
 
 const cities = [
   {
     name: 'Калининград',
-    description:
-      'Калининград — это уникальный город на побережье Балтийского моря, сочетающий в себе богатое прусское наследие и современную российскую культуру. Улицы с немецкой архитектурой, уютные парки и музеи создают атмосферу старой Европы. Город идеально подойдёт для неспешных прогулок, экскурсионного отдыха и знакомства с историей региона. Особое очарование Калининграду придают морской воздух, Янтарный музей и близость к побережью.',
+    description: 'Калининград — это уникальный город на побережье Балтийского моря...',
     image: '/Kaliningrad.jpeg',
   },
   {
     name: 'Светлогорск',
-    description: 'Seaside charm',
+    description: 'Светлогорск',
     image: '/Svetlogorsk.jpeg',
   },
 ]
-
 const city = cities.find((c) => c.name === cityName)
 
+const selectedCategory = ref((route.query.category as string) || '👍🏼')
+const sortOption = ref((route.query.sort as string) || 'По дате')
+const sortAscending = ref(route.query.asc !== 'false')
+
+watch([selectedCategory, sortOption, sortAscending], () => {
+  router.replace({
+    query: {
+      ...route.query,
+      category: selectedCategory.value,
+      sort: sortOption.value,
+      asc: sortAscending.value.toString(),
+    },
+  })
+})
+
+const sortOptions = ['По дате', 'По популярности', 'Бесплатные']
+
 const categories = ref([
-  { name: 'Экскурсии', attractions: 70, image: '/Excursions.jpeg' },
-  { name: 'Где поесть', attractions: 245, image: '/Category.resto.jpeg' },
-  { name: 'Размещение', attractions: 123, image: '/Category.hotels.jpeg' },
-  { name: 'Активный отдых', attractions: 53, image: '/Category.activity.jpeg' },
-  { name: 'Исторические места', attractions: 321, icon: 'mdi:castle' },
-  { name: 'Концерты', attractions: 76, image: '/Category.concerts.jpeg' },
-  { name: 'Театры', attractions: 123, image: '/Theater.jpeg' },
-  { name: 'Семейный выход', attractions: 123, image: '/Category.family.jpeg' },
-  { name: 'Кино', attractions: 123, image: '/Movie.jpeg' },
-  { name: 'Мастер-классы', attractions: 123, image: '/Workshop.jpeg' },
-  { name: 'Музеи', attractions: 123, image: '/Museums.jpeg' },
-  { name: 'Парки/cкверы', attractions: 123, image: '/Parks.jpeg' },
-  { name: 'Отпускной транспорт', attractions: 123, image: '/transport.jpeg' },
-  { name: 'Выставки', attractions: 123, image: '/Exhibition.jpeg' },
+  { name: '👍🏼', attractions: 0 },
+  { name: 'Экскурсии', attractions: 70 },
+  { name: 'Где поесть', attractions: 245 },
+  { name: 'Размещение', attractions: 123 },
+  { name: 'Активный отдых', attractions: 53 },
+  { name: 'Исторические места', attractions: 321 },
+  { name: 'Концерты', attractions: 76 },
+  { name: 'Театры', attractions: 123 },
+  { name: 'Семейный выход', attractions: 123 },
+  { name: 'Кино', attractions: 123 },
+  { name: 'Мастер-классы', attractions: 123 },
+  { name: 'Музеи', attractions: 123 },
+  { name: 'Парки/cкверы', attractions: 123 },
+  { name: 'Отпускной транспорт', attractions: 123 },
+  { name: 'Выставки', attractions: 123 },
 ])
 
-function onCategoryClick(category: any) {
-  console.log('Go to category:', category.name)
+function handleFilterClick() {
+  if (filterOptions[selectedCategory.value]) {
+    showFilterModal.value = true
+  } else {
+    alert('Фильтры для выбранной категории пока не доступны.')
+  }
 }
+
+
+const filteredAttractions = computed(() => {
+  let attractions = selectedCategory.value === '👍🏼'
+    ? [...allAttractions]
+    : allAttractions.filter(a => a.category === selectedCategory.value)
+
+  if (sortOption.value === 'По дате') {
+    attractions.sort((a, b) =>
+      sortAscending.value
+        ? new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()
+        : new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
+    )
+  } else if (sortOption.value === 'По популярности') {
+    attractions.sort((a, b) =>
+      sortAscending.value
+        ? (a.going || 0) - (b.going || 0)
+        : (b.going || 0) - (a.going || 0)
+    )
+  } else if (sortOption.value === 'Бесплатные') {
+    attractions = attractions.filter(a => a.price === 0)
+  }
+
+  return attractions
+})
+
+function goToAttraction(attraction: Attraction) {
+  router.push({ name: 'event-detail', params: { id: attraction.id } })
+}
+
+function formatDateTimeRu(dateStr?: string) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const day = date.getDate()
+  const month = new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(date)
+  const time = date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${day} ${month} ${time}`
+}
+
 </script>
 
 <style scoped>
 .city-detail-page {
   font-family: sans-serif;
-  padding-top:4.3rem;
+  padding-top: 4.3rem;
 }
 
 .city-hero {
   position: relative;
   height: 30vh;
-  min-height: 200px;
   background-size: cover;
   background-position: center;
-  background-repeat: no-repeat;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 }
 
 .city-hero-overlay {
-  background: rgba(0, 0, 0, 0.35);
-  padding: 0.6rem 1.4rem;
+  background: rgba(255, 255, 255, 0.102);
+  border: double white 4px;
+  padding: 0.6rem 1.3rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(1.5px);
   text-align: center;
 }
 
@@ -133,78 +254,250 @@ function onCategoryClick(category: any) {
   color: #fff;
   font-size: 1.4rem;
   font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  background-color: transparent;
 }
 
 .city-description {
-  padding: 1.2rem 1.5rem;
+  padding: 1rem 1rem 0.2rem;
   font-size: 1rem;
-  color: #333;
   line-height: 1.6;
   text-align: justify;
+  color: #333;
 }
 
-.category-grid {
+/* CATEGORY BAR */
+.category-scroll {
+  display: flex;
+  overflow-x: auto;
+  padding: 0.5rem 0.7rem;
+  gap: 0.5rem;
+  margin-top: 0;
+}
+
+.scroll-button {
+  background: rgba(225, 245, 254, 255);
+  color: black;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+  font-weight: 550;
+  transition: background 0.2s ease;
+}
+
+.scroll-button.active {
+  background: #c7d2fe;
+  color: black;
+  font-weight: bold;
+}
+
+/* SORT BAR */
+.sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.sort-bar select {
+  appearance: none;
+  background: rgba(225, 245, 254, 255);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 2rem 0.5rem 0.8rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-arrow {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.7rem;
+  color: #555;
+}
+
+.sort-order-toggle {
+  background: rgba(225, 245, 254, 255);
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-weight: bold;
+}
+
+/* ATTRACTION CARDS */
+.attraction-grid {
+  padding: 1rem 0;
+}
+
+/* Horizontal scrolling for '👍🏼' */
+.attraction-grid.horizontal {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 0.5rem;
+  scroll-padding-left: 0.7rem;
+  scroll-behavior: smooth;
+}
+
+.attraction-grid.horizontal .attraction-card {
+  flex: 0 0 80%;
+  scroll-snap-align: center;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.attraction-grid.horizontal .attraction-card:first-child {
+  margin-left: 1rem;
+}
+
+.attraction-grid.horizontal .attraction-card:last-child {
+  margin-right: 1rem;
+}
+
+/* Responsive vertical grid for other categories */
+.attraction-grid.vertical {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
   padding: 1rem;
 }
 
-.category-card {
-  position: relative;
-  height: 120px;
+@media (min-width: 640px) {
+  .attraction-grid.vertical {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .attraction-grid.vertical {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .attraction-grid.vertical {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Card styles */
+.attraction-card {
   border-radius: 12px;
   overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
-  background-color: #f3f3f3;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease;
+  will-change: transform;
 }
 
-.category-card:hover {
-  transform: scale(1.03);
+.attraction-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
-.category-icon {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  font-size: 1.7rem;
-  color: white;
-  z-index: 2;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+/* Image responsiveness */
+.card-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-.category-label {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.45);
-  color: white;
+@media (min-width: 640px) {
+  .card-image {
+    height: 180px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-image {
+    height: 200px;
+  }
+}
+
+.card-content {
+  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.card-content h3 {
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 600;
-  font-size: 0.85rem;
-  padding: 0.4rem;
-  text-align: center;
-  z-index: 2;
 }
 
-.attraction-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: #3b82f6;
-  color: white;
-  font-size: 0.75rem;
-  font-weight: bold;
-  padding: 0.3em 0.55em;
-  border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  z-index: 2;
+.card-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
 }
+
+.card-content {
+  padding: 0.8rem;
+}
+
+.card-content h3 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1rem;
+}
+
+.back-floating-btn {
+  position: fixed;
+  bottom: 1.2rem;
+  right: 1.2rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: background 0.3s ease;
+  z-index: 10;
+}
+
+.back-floating-btn:hover {
+  border-color: #aaa;
+}
+
+.filter-bar {
+  padding: 0.5rem 1rem;
+  text-align: left; /* or center/right as needed */
+}
+
+.filter-btn {
+  background: rgba(225, 245, 254, 255);
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 </style>

@@ -10,6 +10,8 @@ const routes = [
         {path: "cities", name: "all-cities", component:()=> import("../pages/AllCitiesRoutePage.vue") },
         {path: "categories", name: "all-categories", component:()=> import("../pages/AllCategoriesRoutePage.vue")},
         {path: '/city/:name',name: 'city-detail',component: () => import('../pages/CityDetailPage.vue')},
+        {path: '/event/:id',name: 'event-detail',component: () => import('../pages/EventDetail.vue')},
+
         ]
     }
 ]
