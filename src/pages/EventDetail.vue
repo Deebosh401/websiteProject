@@ -156,7 +156,7 @@ import { Icon } from '@iconify/vue'
 const route = useRoute()
 const router = useRouter()
 const eventId = Number(route.params.id)
-const event = allAttractions.find((e) => e.id === eventId)
+const event = allAttractions.value.find((e) => e.id === eventId)
 
 const showMapDialog = ref(false)
 const showReviewsModal = ref(false)
@@ -308,7 +308,7 @@ function getLevelTitle(level: string) {
 
 const recommended = computed(() => {
   if (!event?.category) return []
-  return allAttractions
+  return allAttractions.value
     .filter((e) => e.category === event.category && e.id !== event.id)
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     .slice(0, 5)
@@ -318,7 +318,6 @@ function goToEvent(id: number) {
   router.push({ name: 'EventDetail', params: { id } })
 }
 </script>
-
 
 <style scoped>
 

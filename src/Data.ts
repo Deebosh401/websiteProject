@@ -1,3 +1,5 @@
+import { ref } from "vue"
+
 export type ExcursionType = 'турфирма' | 'мини группа'
 export type TransportType = 'автобус' | 'индивидуально' | 'пешком' | 'прочее'
 export type DurationRange = '1-3ч' | '3-5ч' | '5-8ч' | 'весь день'
@@ -42,7 +44,7 @@ export interface Review {
   level:string
 }
 
-export const allAttractions: Attraction[] = [
+export const allAttractions = ref<Attraction[]>([
   {
     id: 1,
     name: 'Аэротруба',
@@ -126,4 +128,53 @@ export const allAttractions: Attraction[] = [
     description: 'Посещение аэротрубы',
     rating:4.6,
   },
-]
+])
+
+export interface CarouselInfo {
+  name:string
+  image:string
+  attractions?: number
+  description?: string
+}
+
+export const categoriesData = ref<CarouselInfo[]>([
+  { name: 'Экскурсии', attractions: 70, image: '/Excursions.jpeg' },
+  { name: 'Где поесть', attractions: 245, image: '/Category.resto.jpeg' },
+  { name: 'Размещение', attractions: 123, image: '/Category.hotels.jpeg' },
+  { name: 'Активный отдых', attractions: 53, image: '/Category.activity.jpeg' },
+  { name: 'Исторические места', attractions: 321, image: '/historical_sites.jpeg' },
+  { name: 'Концерты', attractions: 76, image: '/Category.concerts.jpeg' },
+  { name: 'Театры', attractions: 123, image: '/Theater.jpeg' },
+  { name: 'Семейный выход', attractions: 123, image: '/Category.family.jpeg' },
+  { name: 'Кино', attractions: 123, image: '/Movie.jpeg' },
+  { name: 'Мастер-классы', attractions: 123, image: '/Workshop.jpeg' },
+  { name: 'Музеи', attractions: 123, image: '/Museums.jpeg' },
+  { name: 'Парки/cкверы', attractions: 123, image: '/Parks.jpeg' },
+  { name: 'Отпускной транспорт', attractions: 123, image: '/transport.jpeg' },
+  { name: 'Выставки', attractions: 123, image: '/Exhibition.jpeg' },
+])
+
+export const citiesData = ref<CarouselInfo[]>([
+  { name: 'Калининград', image: '/Kaliningrad.jpeg',attractions:70 },
+  { name: 'Светлогорск', image: '/Svetlogorsk.jpeg',attractions:53 },
+  { name: 'Зеленоградск', image: '/Zelenogradsk.jpeg',attractions:321 },
+  { name: 'Янтарный', image: '/Yantarnyi.jpeg',attractions:245 },
+  { name: 'Советск', image: '/Sovetsk.jpeg',attractions:76 },
+  { name: 'Балтийск', image: '/Baltiysk.jpeg',attractions:72 },
+  { name: 'Черняховск', image: '/Chernyakhovsk.jpeg',attractions:123 },
+  { name: 'Гвардейск', image: '/Gvardeysk.jpeg',attractions:43 },
+  { name: 'Гусев', image: '/Gusev.jpeg',attractions:70 },
+  { name: 'Багратионовск', image: '/Bagrationovsk.jpeg',attractions:70 },
+  { name: 'Пионерский', image: '/Pionerskiy.jpeg',attractions:70 },
+  { name: 'Гурьевск', image: '/Guryevsk.jpeg',attractions:70 },
+  { name: 'Озерск', image: '/Ozersk.jpeg',attractions:70 },
+  { name: 'Железнодорожный', image: '/Zheleznodorozhniy.jpeg',attractions:70 },
+  { name: 'Нестеров', image: '/Nesterov.jpeg',attractions:70 },
+  { name: 'Правдинск', image: '/Pravdinsk.jpeg',attractions:70 },
+  { name: 'Краснознаменск', image: '/Krasnoznamensk.jpeg',attractions:70 },
+  { name: 'Славск', image: '/Slavsk.jpeg',attractions:70 },
+  { name: 'Полесск', image: '/Polessk.jpeg',attractions:70 },
+  { name: 'Неман', image: '/Neman.jpeg',attractions:70 },
+  { name: 'Ладушкин', image: '/Ladushkin.jpeg',attractions:70 },
+  { name: 'Мамоново', image: '/Mamonovo.jpeg',attractions:70 },
+])

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["vue"],
     "target": "esnext",
-    "module": "esnext",   // ✅ this is what fixes 'import.meta' usage
+    "module": "esnext",   
     "moduleResolution": "node",
     "jsx": "preserve",
     "esModuleInterop": true,

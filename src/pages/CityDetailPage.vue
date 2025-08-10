@@ -1,7 +1,7 @@
 <template>
   <div class="city-detail-page">
-    <!-- HERO -->
-    <div class="city-hero" :style="{ backgroundImage: `url(${city?.image})` }">
+    <!-- Fallbacks prevent broken layout even if city not found -->
+    <div class="city-hero" :style="{ backgroundImage: `url(${city?.image || '/default-hero.jpg'})` }">
       <div
         class="city-hero-overlay"
         :style="{
@@ -9,12 +9,13 @@
           opacity: `${1 - Math.min(scrollY, 100) / 100}`,
         }"
       >
-        <h1 class="city-name">{{ city?.name }}</h1>
+        <h1 class="city-name">{{ city?.name || cityParam }}</h1>
       </div>
     </div>
 
     <div class="city-description">
-      <p>{{ city?.description }}</p>
+      <p v-if="city?.description">{{ city.description }}</p>
+      <p v-else style="opacity:.7">Описание появится позже.</p>
     </div>
 
     <!-- CATEGORY BAR -->
@@ -92,9 +93,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref,  onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { allAttractions,type Attraction, } from '../Data'
+import { allAttractions, type Attraction, citiesData } from '../Data'  // ⬅️ use shared data
 
 import FilterModal from '../components/FilterModal.vue'
 import { filterOptions } from '../filterConfig'
@@ -110,33 +111,21 @@ function applyFilters(newFilters: Record<string, any>) {
 const router = useRouter()
 const route = useRoute()
 
+// sticky header transform
 const scrollY = ref(0)
-function handleScroll() {
-  scrollY.value = window.scrollY
-}
+function handleScroll() { scrollY.value = window.scrollY }
 onMounted(() => window.addEventListener('scroll', handleScroll))
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
+function goBack() { router.back() }
 
-function goBack() {
-  router.back()
-}
+// read :name from route and find city from shared data
+const cityParam = computed(() => String(route.params.name ?? ''))
+const city = computed(() => {
+  const list = Array.isArray(citiesData.value) ? citiesData.value : []
+  return list.find(c => c.name === cityParam.value)
+})
 
-const cityName = route.params.name as string
-
-const cities = [
-  {
-    name: 'Калининград',
-    description: 'Калининград — это уникальный город на побережье Балтийского моря...',
-    image: '/Kaliningrad.jpeg',
-  },
-  {
-    name: 'Светлогорск',
-    description: 'Светлогорск',
-    image: '/Svetlogorsk.jpeg',
-  },
-]
-const city = cities.find((c) => c.name === cityName)
-
+// UI state from query
 const selectedCategory = ref((route.query.category as string) || '👍🏼')
 const sortOption = ref((route.query.sort as string) || 'По дате')
 const sortAscending = ref(route.query.asc !== 'false')
@@ -147,7 +136,7 @@ watch([selectedCategory, sortOption, sortAscending], () => {
       ...route.query,
       category: selectedCategory.value,
       sort: sortOption.value,
-      asc: sortAscending.value.toString(),
+      asc: String(sortAscending.value),
     },
   })
 })
@@ -173,18 +162,18 @@ const categories = ref([
 ])
 
 function handleFilterClick() {
-  if (filterOptions[selectedCategory.value]) {
-    showFilterModal.value = true
-  } else {
-    alert('Фильтры для выбранной категории пока не доступны.')
-  }
+  if (filterOptions[selectedCategory.value]) showFilterModal.value = true
+  else alert('Фильтры для выбранной категории пока не доступны.')
 }
 
+// IMPORTANT: allAttractions is a ref → use .value
+const filteredAttractions = computed<Attraction[]>(() => {
+  const source = Array.isArray(allAttractions.value) ? allAttractions.value : []
 
-const filteredAttractions = computed(() => {
-  let attractions = selectedCategory.value === '👍🏼'
-    ? [...allAttractions]
-    : allAttractions.filter(a => a.category === selectedCategory.value)
+  let attractions =
+    selectedCategory.value === '👍🏼'
+      ? [...source] // clone array
+      : source.filter(a => a.category === selectedCategory.value)
 
   if (sortOption.value === 'По дате') {
     attractions.sort((a, b) =>
@@ -214,14 +203,9 @@ function formatDateTimeRu(dateStr?: string) {
   const date = new Date(dateStr)
   const day = date.getDate()
   const month = new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(date)
-  const time = date.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
+  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', hour12: false })
   return `${day} ${month} ${time}`
 }
-
 </script>
 
 <style scoped>

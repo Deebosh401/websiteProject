@@ -1,260 +1,200 @@
 <template>
   <div class="cities-header">
-    <p class="cities-list animate-left"> Категории</p>
-    <span class="cities-link animate-right" @click="goToAllCities"> Все категории </span>
+    <p class="cities-list">{{ title }}</p>
+
+    <div class="page-indicators">
+      <span
+        v-for="n in totalPages"
+        :key="n"
+        :class="{ dot: true, active: n - 1 === currentPage }"
+      />
+    </div>
+
+    <span class="cities-link" @click="emit('allClick')">{{ allTitle }}</span>
   </div>
 
-  <div class="slideshow-container">
-    <div class="slideshow">
-      <div
-        v-for="(city, index) in cities"
-        :key="index"
-        class="card"
-      >
-        <div class="card-image-container">
-          <template v-if="city.image.endsWith('.mp4')">
-            <video
-              loop
-              muted
-              playsinline
-              preload="none"
-              class="city-image"
-              ref="videoRefs"
-              :data-index="index"
-            >
-              <source :src="city.image" type="video/mp4" />
-            </video>
-          </template>
-          <template v-else>
-            <img :src="city.image" alt="City Image" class="city-image" />
-          </template>
-          <button class="overlay-button" @click="goToCity(city)">
-            {{ city.name }}
-          </button>
-        </div>
+  <div
+    class="scroll-carousel"
+    ref="carouselRef"
+    @scroll.passive="onScroll"
+    @wheel.passive="onWheel"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
+    <div
+      v-for="(item, i) in items"
+      :key="itemKey ? item[itemKey] : i"
+      class="card"
+      @click="emit('itemClick', item)"
+    >
+      <div class="card-image-container">
+        <template v-if="(item.image || '').endsWith('.mp4')">
+          <video
+            ref="videoRefs"
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="metadata"
+            class="city-image"
+          >
+            <source :src="item.image" type="video/mp4" />
+          </video>
+        </template>
+        <template v-else>
+          <img :src="item.image" alt="" class="city-image" />
+        </template>
+
+        <button
+          class="overlay-button"
+          @click.stop="emit('itemClick', item)"
+          role="button"
+          :aria-label="`Открыть ${item.name}`"
+        >
+          {{ item.name }}
+        </button>
       </div>
-      <div class="end-spacer" aria-hidden="true"></div>
     </div>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount, nextTick, watch, } from 'vue'
-import router from '../../router'
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import type { CarouselInfo } from '../../Data'
 
-interface City {
-  name: string
-  description: string
-  image: string
-  attractions: number
+const props = defineProps<{
+  title: string
+  allTitle?: string
+  items: CarouselInfo[]
+  cardsPerPage?: number
+  itemKey?: keyof CarouselInfo | null
+}>()
+
+const emit = defineEmits<{
+  (e: 'itemClick', item: CarouselInfo): void
+  (e: 'allClick'): void
+}>()
+
+const carouselRef = ref<HTMLElement | null>(null)
+const videoRefs = ref<HTMLVideoElement[]>([])
+let observer: IntersectionObserver | null = null
+
+const currentPage = ref(0)
+const cardsPerPage = computed(() => props.cardsPerPage ?? 2)
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(props.items.length / cardsPerPage.value))
+)
+
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v))
 }
 
-export default defineComponent({
-  setup() {
-    const cities = ref<City[]>([
-      { name: 'Экскурсии', description: 'City of Light', image: '/Excursions.mp4', attractions: 50 },
-      { name: 'Где поесть', description: 'The Big Apple', image: '/food.mp4', attractions: 70 },
-      { name: 'Размещение', description: 'Land of the Rising Sun', image: '/hotels.mp4', attractions: 60 },
-      { name: 'Активный отдых', description: 'The Eternal City', image: '/activity.mp4', attractions: 30 },
-      { name: 'Исторические места', description: 'The Eternal City', image: '/Historical.mp4', attractions: 30 }
-    ])
+function getPageWidthPx() {
+  const el = carouselRef.value
+  if (!el) return 0
+  const card = el.querySelector('.card') as HTMLElement | null
+  if (!card) return 0
+  const gap = parseFloat(getComputedStyle(el).gap || '0')
+  return (card.offsetWidth + gap) * cardsPerPage.value
+}
 
-    const currentIndex = ref(0)
+function scrollToPage(page: number) {
+  const el = carouselRef.value
+  if (!el) return
+  const w = getPageWidthPx()
+  const p = clamp(page, 0, totalPages.value - 1)
+  el.scrollTo({ left: p * w, behavior: 'smooth' })
+  currentPage.value = p
+}
 
-    const goToAllCities = () => {
-     router.push({ name: 'all-categories' });
-    }
+function onScroll() {
+  const el = carouselRef.value
+  if (!el) return
+  const w = getPageWidthPx()
+  if (!w) return
+  const p = Math.round(el.scrollLeft / w)
+  currentPage.value = clamp(p, 0, totalPages.value - 1)
+}
 
-    const goToCity = (city: City) => {
-      console.log(`Navigating to ${city.name} with ${city.attractions} attractions.`)
-    }
+let wheelTimeout: number | undefined
+function onWheel() {
+  if (wheelTimeout) window.clearTimeout(wheelTimeout)
+  wheelTimeout = window.setTimeout(() => snapToNearestPage(), 40)
+}
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        const video = entry.target as HTMLVideoElement
-        const index = parseInt(video.dataset.index || '0')
-        if (entry.isIntersecting) {
-          currentIndex.value = index
-        }
-      })
-    }, {
-      threshold: 0.5,
-      rootMargin: '0px 20% 0px 20%'
-    })
+function snapToNearestPage() {
+  const el = carouselRef.value
+  if (!el) return
+  const w = getPageWidthPx()
+  if (!w) return
+  scrollToPage(Math.round(el.scrollLeft / w))
+}
 
-    const updateVideoPlayback = () => {
-      const videos = document.querySelectorAll<HTMLVideoElement>('video.city-image')
+const SWIPE_VELOCITY_THRESHOLD = 0.6
+const SWIPE_DISTANCE_RATIO = 0.25
 
-      videos.forEach((video) => {
-        const index = parseInt(video.dataset.index || '0')
-        const distance = Math.abs(index - currentIndex.value)
+const touchStartX = ref(0)
+const lastTouchX = ref(0)
+const touchStartTime = ref(0)
+const isTouching = ref(false)
 
-        if (distance <= 1) {
-          if (video.preload !== 'auto') video.preload = 'auto'
-          video.play().catch(() => {})
-        } else if (distance === 2) {
-          if (video.preload !== 'metadata') video.preload = 'metadata'
-          video.pause()
-        } else {
-          if (video.preload !== 'none') video.preload = 'none'
-          video.pause()
-        }
-      })
-    }
+function onTouchStart(e: TouchEvent) {
+  const t = e.touches[0]
+  touchStartX.value = t.clientX
+  lastTouchX.value = t.clientX
+  touchStartTime.value = performance.now()
+  isTouching.value = true
+}
+function onTouchMove(e: TouchEvent) {
+  if (!isTouching.value) return
+  lastTouchX.value = e.touches[0].clientX
+}
+function onTouchEnd() {
+  if (!isTouching.value) return
+  isTouching.value = false
 
-    let playbackTimeout: number | null = null
+  const w = getPageWidthPx()
+  if (!w) return snapToNearestPage()
 
-    watch(currentIndex, () => {
-      if (playbackTimeout) cancelAnimationFrame(playbackTimeout)
+  const elapsed = performance.now() - touchStartTime.value
+  const dist = lastTouchX.value - touchStartX.value
+  const speed = Math.abs(dist) / Math.max(1, elapsed)
+  const dir = dist < 0 ? 1 : -1
 
-      playbackTimeout = requestAnimationFrame(() => {
-        setTimeout(() => {
-          updateVideoPlayback()
-        }, 100)
-      })
-    })
-
-    onMounted(() => {
-      nextTick(() => {
-        const videos = document.querySelectorAll<HTMLVideoElement>('video.city-image')
-        videos.forEach((video) => observer.observe(video))
-        updateVideoPlayback()
-      })
-    })
-
-    onBeforeUnmount(() => {
-      const videos = document.querySelectorAll<HTMLVideoElement>('video.city-image')
-      videos.forEach((video) => observer.unobserve(video))
-    })
-
-    return { cities, goToCity, goToAllCities }
+  if (speed >= SWIPE_VELOCITY_THRESHOLD || Math.abs(dist) >= w * SWIPE_DISTANCE_RATIO) {
+    scrollToPage(currentPage.value + dir)
+  } else {
+    snapToNearestPage()
   }
+}
+
+onMounted(async () => {
+  scrollToPage(0)
+  await nextTick()
+  const videos = (carouselRef.value?.querySelectorAll('video') ?? []) as NodeListOf<HTMLVideoElement>
+  videoRefs.value = Array.from(videos)
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const v = entry.target as HTMLVideoElement
+      if (entry.isIntersecting) v.play().catch(() => {})
+      else v.pause()
+    })
+  }, { threshold: 0.5 })
+  videoRefs.value.forEach((v) => observer?.observe(v))
 })
+
+onUnmounted(() => observer?.disconnect())
 </script>
 
 <style scoped>
-
-.cities-list{
-  text-align: left;
-  margin: 3;
-}
-
-.slideshow-container {
-  background-color: transparent;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  padding-bottom: 10%;
-  padding-top: 2%;
-  scroll-behavior: smooth;
-}
-
-.slideshow-container::-webkit-scrollbar {
-  display: none; 
-}
-
-.slideshow {
-  display: flex;
-  gap: 5vw;
-  display: flex;
-  padding-left: 5vw;
-  scroll-snap-type: x mandatory;
-  scroll-padding-left: 7vw;
-  padding-right: 30vw;
-  display: flex;
-}
-
-.card {
-  flex: 0 0 calc(70vw - 2.5vw);
-  background-color: #f8f5f2; 
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 5px 15px 15px rgba(0, 0, 0, 0.22);
-  scroll-snap-align: center;
-  display: flex;
-  flex-direction: column;
-  aspect-ratio: 1/1;
-}
-
-.card:hover {
-  animation: popBounce 0.5s ease;
-  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
-}
-
-.card-image-container {
-  position: relative;
-  width: 100%;
-  height: 35vh;
-  overflow: hidden;
-  transition: transform 0.3s ease, filter 0.3s ease;
-}
-
-.city-image,
-.city-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease, filter 0.3s ease;
-  border-radius: 20px;
-}
-
-.card-image-container:hover .city-image,
-.card-image-container:hover .city-video {
-  filter: brightness(1.15);
-  transform: scale(1.01);
-}
-
-.overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: transparent;
-  color: #ffffff;
-  padding: 10px;
-  text-align: center;
-}
-.overlay h3 {
-  font-size: 10px;
-  margin: 0;
-  letter-spacing: 1px;
-}
-.overlay h1 {
-  font-size: 26px;
-  font-weight: 700;
-}
-
-.overlay-button {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: transparent; 
-  color: white;
-  border:thick double white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.3s ease, background-color 0.3s ease;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-} 
-
-.overlay-button:hover {
-  transform: translateX(-50%) scale(1.05);
-  background-color: transparent;
-  font:bold;
-}
-
 .cities-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin: 0 5vw 10px;
-  padding-top: 0;
+  justify-content: space-between;
+  padding: 0 5vw;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .cities-list {
@@ -265,10 +205,30 @@ export default defineComponent({
   animation: slideInLeft 0.6s ease-out forwards;
 }
 
+.page-indicators {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ccc;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.dot.active {
+  background-color: #333;
+  transform: scale(1.3);
+}
+
 .cities-link {
   font-size: 16px;
   font-weight: 500;
-  color: rgb(26,58,107);
+  color: rgb(26, 58, 107);
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 8px;
@@ -280,37 +240,93 @@ export default defineComponent({
 }
 
 .cities-link:hover {
-  background-color: rgba(255, 218, 185, 0.3); 
+  background-color: rgba(255, 218, 185, 0.3);
   transform: scale(1.05);
   border-radius: 16px;
-  color: #00b4d8; 
+  color: #00b4d8;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.end-spacer {
-  flex: 0 0 0.1vw; 
-  pointer-events: none;
+.scroll-carousel {
+  display: flex;
+  gap: 2vw;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 0.1rem 2vw 1rem 2vw;
+  scroll-padding-left: 2vw;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x; 
 }
 
-
-@keyframes slideInLeft {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.scroll-carousel::-webkit-scrollbar {
+  display: none;
 }
 
-@keyframes slideInRight {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.card {
+  flex: 0 0 calc((100% - 2vw) / 2);
+  scroll-snap-align: start;
+  background-color: #f8f5f2;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes popBounce {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.03) translateY(-2px); }
-  70%  { transform: scale(0.98) translateY(0px); }
-  100% { transform: scale(1); }
+.card:hover {
+  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
+  transform: translateY(-2px);
+  transition: transform 0.3s ease;
 }
+
+.card-image-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  border-radius: 20px;
+  cursor: grab;
+}
+
+.city-image,
+.city-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.card-image-container:hover .city-image {
+  transform: scale(1.03);
+  filter: brightness(1.1);
+}
+
+.overlay-button {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: transparent;
+  color: white;
+  border: thick double white;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90%;
+}
+
+.overlay-button:hover {
+  transform: translateX(-50%) scale(1.05);
+}
+
+@keyframes slideInLeft { to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInRight { to { opacity: 1; transform: translateX(0); } }
 </style>

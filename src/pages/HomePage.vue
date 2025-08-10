@@ -7,7 +7,6 @@
         </div>
       </div>
 
-
       <nav class="scroll-nav">
       <button @click="scrollTo('cities')">Города</button>
       <button @click="scrollTo('categories')">Категории</button>
@@ -19,11 +18,25 @@
       <button @click="scrollTo('map')">Карта</button>
       </nav>
 
-      <div id="cities"><Cities /></div>
-      <div id="categories"><Categories /></div>
+      <div id="cities"><Categories title="Города"
+       allTitle = "Все города"
+        :items="citiesData" 
+        itemKey = "name"
+        @itemClick="(item) => router.push({ name: 'city-detail', params: { name: item.name } })"
+        @allClick="() => router.push({ name: 'all-cities' })"/></div>
+      <section id="categories">
+      <Categories
+        title="Категории"
+        allTitle="Все категории"
+        :items="categoriesData"
+        item-key="name"
+        @itemClick="(item) => router.push({ name: 'category-detail', params: { name: item.name } })"
+        @allClick="() => router.push({ name: 'all-categories' })"
+      />
+    </section>
       <div id ="afisha"><Afisha/></div>
-      <div id="weather"><WeatherApp /></div>
       <div id="popular"><Popular /></div>
+      <div id="weather"><WeatherApp /></div>
       <div id="guides"><Guides /></div>
       <div id="slang"><SlangJokes /></div>
       <div id="firsthand"><FirstHandExperience /></div>
@@ -35,7 +48,6 @@
   </template>
   
   <script setup>
-  import Cities from "../components/layout/Cities.vue"
   import Categories from "../components/layout/Categories.vue"
   import Popular from "../components/layout/Popular.vue";
   import Guides from "../components/layout/Guides.vue";
@@ -44,7 +56,10 @@
   import Map from "../components/layout/Map.vue";
   import Afisha from "../components/layout/Afisha.vue";
   import { ref, onMounted, onUnmounted } from 'vue'
-
+  import {citiesData,categoriesData} from "../Data";
+  import { useRouter } from "vue-router";
+  
+const router = useRouter()
 const showTopButton = ref(false)
 
 const scrollTo = (id) => {
@@ -71,6 +86,20 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', checkScroll)
 })
+
+function handleCategoryClick(item) {
+  router.push({ name: 'category-detail', params: { name: item.name } })
+}
+function goToAllCategories() {
+  router.push({ name: 'all-categories' })
+}
+
+function handleCityClick(item) {
+  router.push({ name: 'city-detail', params: { name: item.name } })
+}
+function goToAllCities() {
+  router.push({ name: 'all-cities' })
+}
 
 </script>
   

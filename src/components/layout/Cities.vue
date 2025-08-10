@@ -26,23 +26,43 @@
       @click="goToCity(city)"
     >
       <div class="card-image-container">
-        <img :src="city.image" alt="" class="city-image" />
-        <button class="overlay-button" @click.stop="goToCity(city)">
-          {{ city.name }}
-        </button>
-      </div>
-    </div>
+  <template v-if="city.image.endsWith('.mp4')">
+    <video
+      ref="videoRefs"
+      autoplay
+      loop
+      muted
+      playsinline
+      preload="metadata"
+      class="city-image"
+    >
+      <source :src="city.image" type="video/mp4" />
+    </video>
+  </template>
+  <template v-else>
+    <img :src="city.image" alt="" class="city-image" />
+  </template>
+
+  <button
+    class="overlay-button"
+    @click.stop="goToCity(city)"
+    role="button"
+    :aria-label="`Перейти к городу ${city.name}`"
+  >
+    {{ city.name }}
+  </button>
+</div>
+  </div>
   </div>
 </template>
 
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 interface City {
   name: string
-  description: string
   image: string
   attractions: number
 }
@@ -51,12 +71,12 @@ export default defineComponent({
   setup() {
     const router = useRouter()
     const cities = ref<City[]>([
-      { name: 'Калининград', description: '', image: '/Kaliningrad.jpeg', attractions: 50 },
-      { name: 'Светлогорск', description: '', image: '/Svetlogorsk.jpeg', attractions: 70 },
-      { name: 'Зеленоградск', description: '', image: '/Zelenogradsk.jpeg', attractions: 60 },
-      { name: 'Янтарный', description: '', image: '/Yantarnyi.jpeg', attractions: 40 },
-      { name: 'Советск', description: '', image: '/Sovetsk.jpeg', attractions: 30 },
-       { name: 'Балтийск', description: '', image: '/Baltiysk.jpeg', attractions: 30 },
+      { name: 'Калининград', image: '/Kaliningrad.jpeg', attractions: 50 },
+      { name: 'Светлогорск', image: '/Svetlogorsk.jpeg', attractions: 70 },
+      { name: 'Зеленоградск', image: '/Zelenogradsk.jpeg', attractions: 60 },
+      { name: 'Янтарный', image: '/Yantarnyi.jpeg', attractions: 40 },
+      { name: 'Советск', image: '/Sovetsk.jpeg', attractions: 30 },
+      { name: 'Балтийск', image: '/Baltiysk.jpeg', attractions: 30 }, 
     ])
 
     const cardsPerPage = 2
@@ -64,6 +84,8 @@ export default defineComponent({
     const currentPage = ref(0)
 
     const carouselRef = ref<HTMLElement | null>(null)
+    const videoRefs = ref<HTMLVideoElement[]>([])
+    let observer: IntersectionObserver | null = null
 
     function scrollToPage(page: number) {
       const container = carouselRef.value
@@ -94,24 +116,23 @@ export default defineComponent({
     }
 
     function onScroll() {
-  const container = carouselRef.value
-  if (!container) return
+      const container = carouselRef.value
+      if (!container) return
 
-  const scrollLeft = container.scrollLeft
-  const card = container.querySelector('.card') as HTMLElement
-  const gap = parseFloat(getComputedStyle(container).gap || '0px')
-  const cardWidth = card.offsetWidth
-  const pageWidth = (cardWidth + gap) * cardsPerPage
+      const scrollLeft = container.scrollLeft
+      const card = container.querySelector('.card') as HTMLElement
+      const gap = parseFloat(getComputedStyle(container).gap || '0px')
+      const cardWidth = card.offsetWidth
+      const pageWidth = (cardWidth + gap) * cardsPerPage
 
-  const page = Math.round(scrollLeft / pageWidth)
-  currentPage.value = Math.max(0, Math.min(totalPages - 1, page))
+      const page = Math.round(scrollLeft / pageWidth)
+      currentPage.value = Math.max(0, Math.min(totalPages - 1, page))
 
-  clearTimeout((onScroll as any).timeout)
-  ;(onScroll as any).timeout = setTimeout(() => {
-    snapToNearestPage()
-  }, 100)
-}
-
+      clearTimeout((onScroll as any).timeout)
+      ;(onScroll as any).timeout = setTimeout(() => {
+        snapToNearestPage()
+      }, 100)
+    }
 
     function snapToNearestPage() {
       const container = carouselRef.value
@@ -135,8 +156,32 @@ export default defineComponent({
       router.push({ name: 'all-cities' })
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       scrollToPage(0)
+      await nextTick()
+
+      const videos = document.querySelectorAll<HTMLVideoElement>('video')
+      videoRefs.value = Array.from(videos)
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            const video = entry.target as HTMLVideoElement
+            if (entry.isIntersecting) {
+              video.play().catch(() => {})
+            } else {
+              video.pause()
+            }
+          })
+        },
+        { threshold: 0.5 } 
+      )
+
+      videoRefs.value.forEach((video) => observer?.observe(video))
+    })
+
+    onUnmounted(() => {
+      observer?.disconnect()
     })
 
     return {
@@ -153,8 +198,6 @@ export default defineComponent({
   },
 })
 </script>
-
-
 
 <style scoped>
 .cities-header {
@@ -218,15 +261,16 @@ export default defineComponent({
 
 .scroll-carousel {
   display: flex;
-  gap: 5vw;
+  gap: 2vw;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding: 1rem 5vw 2rem 5vw;
-  scroll-padding-left: 5vw;
+  padding: 0.1rem 2vw 0.5rem 2vw;
+  scroll-padding-left: 2vw;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
+  color: transparent;
 }
 
 .scroll-carousel::-webkit-scrollbar {
@@ -234,7 +278,7 @@ export default defineComponent({
 }
 
 .card {
-  flex: 0 0 calc((100% - 5vw) / 2);
+  flex: 0 0 calc((100% - 2vw) / 2);
   scroll-snap-align: start;
   background-color: #f8f5f2;
   border-radius: 20px;
@@ -292,10 +336,7 @@ export default defineComponent({
   transform: translateX(-50%) scale(1.05);
 }
 
-.end-spacer {
-  flex: 0 0 5vw;
-  pointer-events: none;
-}
+
 
 /* Animations */
 @keyframes slideInLeft {
@@ -311,6 +352,4 @@ export default defineComponent({
     transform: translateX(0);
   }
 }
-
-
 </style>
