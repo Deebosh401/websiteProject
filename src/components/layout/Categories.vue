@@ -15,6 +15,7 @@
 
   <div
     class="scroll-carousel"
+    :class="{ 'afisha-mode': isAfisha }"
     ref="carouselRef"
     @scroll.passive="onScroll"
     @wheel.passive="onWheel"
@@ -23,37 +24,41 @@
     @touchend="onTouchEnd"
   >
     <div
-      v-for="(item, i) in items"
-      :key="itemKey ? item[itemKey] : i"
-      class="card"
-      @click="emit('itemClick', item)"
-    >
+        v-for="(item, i) in displayItems"
+        :key="itemKeyValue(item, i)"
+        class="card"
+        :class="{ 'afisha-card': title === 'Афиша событий' }"
+        @click="emit('itemClick', item)"
+      >
       <div class="card-image-container">
-        <template v-if="(item.image || '').endsWith('.mp4')">
-          <video
-            ref="videoRefs"
-            autoplay
-            loop
-            muted
-            playsinline
-            preload="metadata"
-            class="city-image"
-          >
-            <source :src="item.image" type="video/mp4" />
+        <template v-if="getImage(item).endsWith('.mp4')">
+          <video ref="videoRefs" autoplay loop muted playsinline preload="metadata" class="city-image">
+            <source :src="getImage(item)" type="video/mp4" />
           </video>
         </template>
         <template v-else>
-          <img :src="item.image" alt="" class="city-image" />
+          <img :src="getImage(item)" alt="" class="city-image" />
         </template>
 
-        <button
-          class="overlay-button"
-          @click.stop="emit('itemClick', item)"
-          role="button"
-          :aria-label="`Открыть ${item.name}`"
-        >
-          {{ item.name }}
-        </button>
+        <!-- Afisha overlay only for events (Attraction) -->
+        <template v-if="title === 'Афиша событий' && isAttraction(item)">
+      <div class="event-info compact">
+        <h4 class="event-name">{{ getName(item) }}</h4>
+        <p v-if="item.date" class="event-date">{{ formatDate(item.date) }}</p>
+        <p v-if="item.location" class="event-location">{{ item.location }}</p>
+      </div>
+    </template>
+
+        <template v-else>
+          <button
+            class="overlay-button"
+            @click.stop="emit('itemClick', item)"
+            role="button"
+            :aria-label="`Открыть ${getName(item)}`"
+          >
+            {{ getName(item) }}
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -61,29 +66,61 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
-import type { CarouselInfo } from '../../Data'
+import type { Attraction, CarouselInfo } from '../../Data'
+
+type Item = CarouselInfo | Attraction
 
 const props = defineProps<{
   title: string
   allTitle?: string
-  items: CarouselInfo[]
+  items: Item[]
   cardsPerPage?: number
-  itemKey?: keyof CarouselInfo | null
+  itemKey?: keyof CarouselInfo | keyof Attraction | string | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'itemClick', item: CarouselInfo): void
+  (e: 'itemClick', item: Item): void
   (e: 'allClick'): void
 }>()
+
+/* ---------- helpers & type guards ---------- */
+const isAfisha = computed(() => props.title === 'Афиша событий')
+
+function isAttraction(item: Item): item is Attraction {
+  return 'category' in item || 'date' in item || 'location' in item
+}
+function getImage(item: Item): string {
+  return (item as Attraction).image ?? (item as CarouselInfo).image ?? ''
+}
+function getName(item: Item): string {
+  return (item as any).name ?? ''
+}
+function itemKeyValue(item: Item, i: number) {
+  const keyProp = (props.itemKey ?? '') as string
+  const val = keyProp && (item as any)[keyProp]
+  return val != null ? String(val) : i
+}
+function formatDate(dateStr?: string) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d)
+}
 
 const carouselRef = ref<HTMLElement | null>(null)
 const videoRefs = ref<HTMLVideoElement[]>([])
 let observer: IntersectionObserver | null = null
 
+const displayItems = computed(() => props.items.slice(0, 6))
+
+const cardsPerPage = computed(() => (isAfisha.value ? 1 : (props.cardsPerPage ?? 2)))
+
 const currentPage = ref(0)
-const cardsPerPage = computed(() => props.cardsPerPage ?? 2)
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(props.items.length / cardsPerPage.value))
+  Math.max(1, Math.ceil(displayItems.value.length / cardsPerPage.value))
 )
 
 function clamp(v: number, min: number, max: number) {
@@ -99,13 +136,36 @@ function getPageWidthPx() {
   return (card.offsetWidth + gap) * cardsPerPage.value
 }
 
-function scrollToPage(page: number) {
+function scrollToPage(nextPage: number) {
   const el = carouselRef.value
   if (!el) return
+  const total = totalPages.value
+  // loop
+  if (nextPage >= total) currentPage.value = 0
+  else if (nextPage < 0) currentPage.value = total - 1
+  else currentPage.value = nextPage
+
   const w = getPageWidthPx()
-  const p = clamp(page, 0, totalPages.value - 1)
-  el.scrollTo({ left: p * w, behavior: 'smooth' })
-  currentPage.value = p
+  el.scrollTo({ left: currentPage.value * w, behavior: 'smooth' })
+}
+
+let autoScrollTimer: number | undefined
+function startAutoScroll() {
+  if (!isAfisha.value) return
+  stopAutoScroll()
+  autoScrollTimer = window.setInterval(() => {
+    scrollToPage(currentPage.value + 1)
+  }, 5000)
+}
+
+function stopAutoScroll() {
+  if (autoScrollTimer) {
+    window.clearInterval(autoScrollTimer)
+    autoScrollTimer = undefined
+  }
+}
+function onUserInteraction() {
+  if (isAfisha.value) startAutoScroll()
 }
 
 function onScroll() {
@@ -113,8 +173,8 @@ function onScroll() {
   if (!el) return
   const w = getPageWidthPx()
   if (!w) return
-  const p = Math.round(el.scrollLeft / w)
-  currentPage.value = clamp(p, 0, totalPages.value - 1)
+  currentPage.value = clamp(Math.round(el.scrollLeft / w), 0, totalPages.value - 1)
+  onUserInteraction()
 }
 
 let wheelTimeout: number | undefined
@@ -122,18 +182,17 @@ function onWheel() {
   if (wheelTimeout) window.clearTimeout(wheelTimeout)
   wheelTimeout = window.setTimeout(() => snapToNearestPage(), 40)
 }
-
 function snapToNearestPage() {
   const el = carouselRef.value
   if (!el) return
   const w = getPageWidthPx()
   if (!w) return
   scrollToPage(Math.round(el.scrollLeft / w))
+  onUserInteraction()
 }
 
 const SWIPE_VELOCITY_THRESHOLD = 0.6
 const SWIPE_DISTANCE_RATIO = 0.25
-
 const touchStartX = ref(0)
 const lastTouchX = ref(0)
 const touchStartTime = ref(0)
@@ -153,7 +212,6 @@ function onTouchMove(e: TouchEvent) {
 function onTouchEnd() {
   if (!isTouching.value) return
   isTouching.value = false
-
   const w = getPageWidthPx()
   if (!w) return snapToNearestPage()
 
@@ -167,10 +225,14 @@ function onTouchEnd() {
   } else {
     snapToNearestPage()
   }
+  onUserInteraction()
 }
 
+/* ---------- lifecycle ---------- */
 onMounted(async () => {
   scrollToPage(0)
+  startAutoScroll()
+
   await nextTick()
   const videos = (carouselRef.value?.querySelectorAll('video') ?? []) as NodeListOf<HTMLVideoElement>
   videoRefs.value = Array.from(videos)
@@ -184,7 +246,10 @@ onMounted(async () => {
   videoRefs.value.forEach((v) => observer?.observe(v))
 })
 
-onUnmounted(() => observer?.disconnect())
+onUnmounted(() => {
+  observer?.disconnect()
+  stopAutoScroll()
+})
 </script>
 
 <style scoped>
@@ -192,11 +257,10 @@ onUnmounted(() => observer?.disconnect())
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 5vw;
+  padding: 0 3vw;
   margin-top: 1rem;
   margin-bottom: 0.5rem;
 }
-
 .cities-list {
   font-size: 20px;
   font-weight: bold;
@@ -204,14 +268,12 @@ onUnmounted(() => observer?.disconnect())
   transform: translateX(-20px);
   animation: slideInLeft 0.6s ease-out forwards;
 }
-
 .page-indicators {
   display: flex;
   gap: 0.3rem;
   align-items: center;
   justify-content: center;
 }
-
 .dot {
   width: 8px;
   height: 8px;
@@ -219,12 +281,10 @@ onUnmounted(() => observer?.disconnect())
   background-color: #ccc;
   transition: background-color 0.3s ease, transform 0.3s ease;
 }
-
 .dot.active {
   background-color: #333;
   transform: scale(1.3);
 }
-
 .cities-link {
   font-size: 16px;
   font-weight: 500;
@@ -238,7 +298,6 @@ onUnmounted(() => observer?.disconnect())
   animation: slideInRight 0.6s ease-out forwards;
   animation-delay: 0.2s;
 }
-
 .cities-link:hover {
   background-color: rgba(255, 218, 185, 0.3);
   transform: scale(1.05);
@@ -258,12 +317,9 @@ onUnmounted(() => observer?.disconnect())
   scrollbar-width: none;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
-  touch-action: pan-x; 
+  touch-action: pan-x;
 }
-
-.scroll-carousel::-webkit-scrollbar {
-  display: none;
-}
+.scroll-carousel::-webkit-scrollbar { display: none; }
 
 .card {
   flex: 0 0 calc((100% - 2vw) / 2);
@@ -273,11 +329,15 @@ onUnmounted(() => observer?.disconnect())
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
-
 .card:hover {
   box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
   transform: translateY(-2px);
   transition: transform 0.3s ease;
+}
+
+.scroll-carousel.afisha-mode .card {
+  flex: 0 0 100%;
+  height: 85%;
 }
 
 .card-image-container {
@@ -289,7 +349,6 @@ onUnmounted(() => observer?.disconnect())
   border-radius: 20px;
   cursor: grab;
 }
-
 .city-image,
 .city-video {
   width: 100%;
@@ -298,6 +357,7 @@ onUnmounted(() => observer?.disconnect())
   border-radius: 20px;
   transition: transform 0.3s ease, filter 0.3s ease;
 }
+
 
 .card-image-container:hover .city-image {
   transform: scale(1.03);
@@ -322,9 +382,118 @@ onUnmounted(() => observer?.disconnect())
   text-overflow: ellipsis;
   max-width: 90%;
 }
+.overlay-button:hover { transform: translateX(-50%) scale(1.05); }
 
-.overlay-button:hover {
-  transform: translateX(-50%) scale(1.05);
+.event-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 26%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.1rem;
+  padding:  0.5rem;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
+  border-top: 0.25px solid rgba(255,255,255,0.15);
+  box-shadow: inset 0 8px 24px rgba(0,0,0,0.25);
+  backdrop-filter: blur(1px);
+}
+.event-name {
+  font-weight: 500;
+  font-size: clamp(1rem, 1vw, 1.2rem);
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 2px rgba(193, 156, 71, 0.35);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.event-date,
+.event-location {
+  font-size: clamp(0.8rem, 1vw, 0.85rem);
+  line-height: 1.2;
+  opacity: 0.95;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-date::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #ffbf47;
+  box-shadow: 0 0 0 0 rgba(255,191,71,0.9);
+  animation: pulse 1.9s infinite;
+}
+
+.afisha-card {
+  flex: 0 0 100%;    
+  aspect-ratio: 16 / 10;
+  max-height: 260px;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .afisha-card { max-height: 260px; }
+}
+@media (min-width: 1024px) {
+  .afisha-card { max-height: 280px; }
+}
+
+.afisha-card .card-image-container,
+.afisha-card .city-image {
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-info.compact {
+  padding: 0rem 0.5rem 0.1rem;   
+  gap: 0.1rem;                     
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.65) 0%,
+    rgba(0,0,0,0.45) 60%,
+    rgba(0,0,0,0.0) 100%
+  );
+}
+
+.afisha-card .event-name {
+  font-weight: 600;
+  font-size: clamp(1rem, 3.6vw, 1.05rem);
+  line-height: 1.15;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.afisha-card .event-date,
+.afisha-card .event-location {
+  font-size: clamp(0.75rem, 3.2vw, 0.9rem);
+  line-height: 1.2;
+  margin: 0;
+  opacity: 0.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255,191,71,0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255,191,71,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,191,71,0); }
 }
 
 @keyframes slideInLeft { to { opacity: 1; transform: translateX(0); } }

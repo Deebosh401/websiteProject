@@ -79,7 +79,7 @@
     <div class="card-content">
       <h3>{{ attraction.name }}</h3>
       <p v-if="attraction.date">📅 {{ formatDateTimeRu(attraction.date) }}</p>
-      <p v-if="attraction.going">✅ {{ attraction.going }} участников</p>
+      <p v-if="attraction.checkedIn">✅ {{ attraction.checkedIn }} участников</p>
       <p v-if="attraction.price === 0">Бесплатно</p>
       <p v-else-if="attraction.price">💶 {{ attraction.price }} ₽</p>
     </div>
@@ -184,8 +184,8 @@ const filteredAttractions = computed<Attraction[]>(() => {
   } else if (sortOption.value === 'По популярности') {
     attractions.sort((a, b) =>
       sortAscending.value
-        ? (a.going || 0) - (b.going || 0)
-        : (b.going || 0) - (a.going || 0)
+        ? (a.checkedIn || 0) - (b.checkedIn || 0)
+        : (b.checkedIn || 0) - (a.checkedIn || 0)
     )
   } else if (sortOption.value === 'Бесплатные') {
     attractions = attractions.filter(a => a.price === 0)
@@ -471,7 +471,7 @@ function formatDateTimeRu(dateStr?: string) {
 
 .filter-bar {
   padding: 0.5rem 1rem;
-  text-align: left; /* or center/right as needed */
+  text-align: left;
 }
 
 .filter-btn {

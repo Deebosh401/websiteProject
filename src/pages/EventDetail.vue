@@ -13,7 +13,7 @@
         </p>
         <p v-if="event.price === 0">💸 Бесплатно... ну или не совсем</p>
         <p v-else-if="event.price">💶 {{ event.price }} ₽</p>
-        <p v-if="event.going">✅ {{ event.going }} участников</p>
+        <p v-if="event.checkedIn">✅ {{ event.checkedIn }} участников</p>
       </div>
 
       <div class="attendees" v-if="reviews.length">

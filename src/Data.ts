@@ -13,7 +13,7 @@ export interface Attraction {
   category: string
   image?: string
   date?: string
-  going?: number
+  checkedIn?: number
   price?: number | null
   location?: string
   meetingPoint?: string
@@ -34,6 +34,7 @@ export interface Attraction {
   openHours?: string 
   placeType?: PlaceType
   canReserve?: boolean
+  city:string
 }
 
 export interface Review {
@@ -51,7 +52,7 @@ export const allAttractions = ref<Attraction[]>([
     category: 'Активный отдых',
     image: '/Aerotruba.jpg',
     date: '2025-08-23T10:45:00',
-    going: 80,
+    checkedIn: 80,
     price: 0,
     location: 'Спортцентр Калининград',
     meetingPoint: 'Главный вход',
@@ -60,6 +61,7 @@ export const allAttractions = ref<Attraction[]>([
     instagram: 'https://instagram.com/example1',
     description: 'Посещение аэротрубы',
     rating:4.6,
+    city:"Калининград",
   },
   {
     id: 3,
@@ -68,7 +70,7 @@ export const allAttractions = ref<Attraction[]>([
     image: '/zamki.png',
     date: '2025-09-15T12:00:00',
     price: 1000,
-    going: 25,
+    checkedIn: 25,
     location: 'Южный вокзал, Калининград',
     meetingPoint: 'Южный вокзал',
     endPoint: 'пос. Низовье',
@@ -82,6 +84,7 @@ export const allAttractions = ref<Attraction[]>([
     accessible: true,
     familyFriendly: true,
     season: 'лето',
+    city:"Калининград",
   },
   {
     id: 2,
@@ -95,6 +98,7 @@ export const allAttractions = ref<Attraction[]>([
     priceLevel: 'дорогие',
     placeType: 'ресторан',
     canReserve: true,
+    city:"Калининград",
   },
   {
     id: 4,
@@ -102,7 +106,7 @@ export const allAttractions = ref<Attraction[]>([
     category: 'Активный отдых',
     image: '/Aerotruba.jpg',
     date: '2025-08-23T10:45:00',
-    going: 80,
+    checkedIn: 80,
     price: 0,
     location: 'Спортцентр Калининград',
     meetingPoint: 'Главный вход',
@@ -111,6 +115,7 @@ export const allAttractions = ref<Attraction[]>([
     instagram: 'https://instagram.com/example1',
     description: 'Посещение аэротрубы',
     rating:4.6,
+    city:"Калининград",
   },
   {
     id: 5,
@@ -118,7 +123,7 @@ export const allAttractions = ref<Attraction[]>([
     category: 'Активный отдых',
     image: '/Aerotruba.jpg',
     date: '2025-08-23T10:45:00',
-    going: 80,
+    checkedIn: 80,
     price: 0,
     location: 'Спортцентр Калининград',
     meetingPoint: 'Главный вход',
@@ -127,6 +132,7 @@ export const allAttractions = ref<Attraction[]>([
     instagram: 'https://instagram.com/example1',
     description: 'Посещение аэротрубы',
     rating:4.6,
+    city:"Калининград",
   },
 ])
 
@@ -177,4 +183,21 @@ export const citiesData = ref<CarouselInfo[]>([
   { name: 'Неман', image: '/Neman.jpeg',attractions:70 },
   { name: 'Ладушкин', image: '/Ladushkin.jpeg',attractions:70 },
   { name: 'Мамоново', image: '/Mamonovo.jpeg',attractions:70 },
+])
+
+export const categoriesCarouselData = ref<CarouselInfo[]>([
+  { name: 'Экскурсии', attractions: 70, image: '/Excursions.mp4' },
+  { name: 'Где поесть', attractions: 245, image: '/food.mp4' },
+  { name: 'Размещение', attractions: 123, image: '/hotels.mp4' },
+  { name: 'Активный отдых', attractions: 53, image: '/activity.mp4' },
+  { name: 'Исторические места', attractions: 321, image: '/Historical.mp4' },
+  { name: 'Концерты', attractions: 76, image: '/music.mp4' },
+  { name: 'Театры', attractions: 123, image: '/Theater.jpeg' },
+  { name: 'Семейный выход', attractions: 123, image: '/Category.family.jpeg' },
+  { name: 'Кино', attractions: 123, image: '/Movie.jpeg' },
+  { name: 'Мастер-классы', attractions: 123, image: '/clayWorkshop.mp4' },
+  { name: 'Музеи', attractions: 123, image: '/museums.mp4' },
+  { name: 'Парки/cкверы', attractions: 123, image: '/Parks.jpeg' },
+  { name: 'Отпускной транспорт', attractions: 123, image: '/transport.jpeg' },
+  { name: 'Выставки', attractions: 123, image: '/Exhibition.jpeg' },
 ])

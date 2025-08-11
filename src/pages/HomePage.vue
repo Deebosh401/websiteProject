@@ -1,13 +1,12 @@
 <template>
-    <div class="home-page">
-      <div class="site-motto pushkin-motto">
-        <div class="motto-line">
-          <!-- <h2>Мир ближе, чем кажется. </h2> -->
-          <h3> Путешествуйте со вкусом</h3>
-        </div>
+  <div class="home-page">
+    <div class="site-motto pushkin-motto">
+      <div class="motto-line">
+        <h3>Путешествуйте со вкусом</h3>
       </div>
+    </div>
 
-      <nav class="scroll-nav">
+    <nav class="scroll-nav">
       <button @click="scrollTo('cities')">Города</button>
       <button @click="scrollTo('categories')">Категории</button>
       <button @click="scrollTo('afisha')">Афиша</button>
@@ -16,49 +15,66 @@
       <button @click="scrollTo('slang')">Словарь/Погода</button>
       <button @click="scrollTo('firsthand')">Личный опыт</button>
       <button @click="scrollTo('map')">Карта</button>
-      </nav>
+    </nav>
 
-      <div id="cities"><Categories title="Города"
-       allTitle = "Все города"
-        :items="citiesData" 
-        itemKey = "name"
+    <div id="cities">
+      <Categories
+        title="Города"
+        allTitle="Все города"
+        :items="citiesData.slice(0, 6)"
+        item-key="name"
         @itemClick="(item) => router.push({ name: 'city-detail', params: { name: item.name } })"
-        @allClick="() => router.push({ name: 'all-cities' })"/></div>
-      <section id="categories">
+        @allClick="() => router.push({ name: 'all-cities' })"
+      />
+    </div>
+
+    <div id="categories">
       <Categories
         title="Категории"
         allTitle="Все категории"
-        :items="categoriesData"
+        :items="categoriesCarouselData.slice(0, 6)"
         item-key="name"
-        @itemClick="(item) => router.push({ name: 'category-detail', params: { name: item.name } })"
+        @itemClick="(item) => router.push({ name: 'category-detail', params: { name: item.name }})"
         @allClick="() => router.push({ name: 'all-categories' })"
       />
-    </section>
-      <div id ="afisha"><Afisha/></div>
-      <div id="popular"><Popular /></div>
-      <div id="weather"><WeatherApp /></div>
-      <div id="guides"><Guides /></div>
-      <div id="slang"><SlangJokes /></div>
-      <div id="firsthand"><FirstHandExperience /></div>
-      <div id="map"><Map /></div>
-
-    <!-- Back to Top Button -->
-    <button v-if="showTopButton" class="back-to-top" @click="scrollToTop"><span class="arrow-icon"></span> </button>
     </div>
-  </template>
-  
-  <script setup>
-  import Categories from "../components/layout/Categories.vue"
-  import Popular from "../components/layout/Popular.vue";
-  import Guides from "../components/layout/Guides.vue";
-  import SlangJokes from "../components/layout/SlangJokes.vue";
-  import FirstHandExperience from "../components/layout/FirstHandExperience.vue";
-  import Map from "../components/layout/Map.vue";
-  import Afisha from "../components/layout/Afisha.vue";
-  import { ref, onMounted, onUnmounted } from 'vue'
-  import {citiesData,categoriesData} from "../Data";
-  import { useRouter } from "vue-router";
-  
+
+    <div id="afisha">
+      <Categories
+        title="Афиша событий"
+        allTitle="Все события"
+        :items="afishaItems"
+        item-key="name"
+        @itemClick="(item) => router.push({ name: 'event-detail', params: { id: item.id } })"
+        @allClick="() => router.push({ name: 'all-categories' })"
+      />
+    </div>
+
+    <div id="popular"><Popular /></div>
+    <div id="weather"><WeatherApp /></div>
+    <div id="guides"><Guides /></div>
+    <div id="slang"><SlangJokes /></div>
+    <div id="firsthand"><FirstHandExperience /></div>
+    <div id="map"></div>
+
+    <button v-if="showTopButton" class="back-to-top" @click="scrollToTop">
+      <span class="arrow-icon"></span>
+    </button>
+  </div>
+</template>
+
+<script setup>
+import Categories from "../components/layout/Categories.vue"
+import Popular from "../components/layout/Popular.vue";
+import Guides from "../components/layout/Guides.vue";
+import SlangJokes from "../components/layout/SlangJokes.vue";
+import FirstHandExperience from "../components/layout/FirstHandExperience.vue";
+import Map from "../components/layout/Map.vue";
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { citiesData, categoriesCarouselData } from "../Data";
+import { allAttractions} from "../Data";
+import { useRouter } from "vue-router";
+
 const router = useRouter()
 const showTopButton = ref(false)
 
@@ -71,12 +87,35 @@ const scrollTo = (id) => {
   }
 }
 
+function parseRu(dateStr) {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/.exec(String(dateStr))
+  if (!m) return NaN
+  const [, dd, mm, yyyy, hh = '00', min = '00'] = m
+  return new Date(`${yyyy}-${mm}-${dd}T${hh}:${min}:00`).getTime()
+}
+
+const afishaItems = computed(() => {
+  const now = Date.now()
+  return allAttractions.value
+    .filter(a => a && a.date)
+    .map(a => {
+      const tsNative = Date.parse(a.date)
+      const ts = Number.isNaN(tsNative) ? parseRu(a.date) : tsNative
+      return { ...a, _ts: ts }
+    })
+    .filter(a => !Number.isNaN(a._ts))
+    .filter(a => a._ts >= now) 
+    .sort((a, b) => a._ts - b._ts) 
+    .slice(0, 6)
+    .map(({ _ts, ...rest }) => rest)
+})
+
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const checkScroll = () => {
-  showTopButton.value = window.scrollY > 250
+  showTopButton.value = window.scrollY > 50
 }
 
 onMounted(() => {
@@ -86,28 +125,13 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', checkScroll)
 })
-
-function handleCategoryClick(item) {
-  router.push({ name: 'category-detail', params: { name: item.name } })
-}
-function goToAllCategories() {
-  router.push({ name: 'all-categories' })
-}
-
-function handleCityClick(item) {
-  router.push({ name: 'city-detail', params: { name: item.name } })
-}
-function goToAllCities() {
-  router.push({ name: 'all-cities' })
-}
-
 </script>
   
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&display=swap');
   
   .home-page {
-    margin-top: 70px;
+    margin-top: 4.7rem;
     position: relative;
     z-index: 1;
     background-color: rgba(249, 233, 208, 0);
