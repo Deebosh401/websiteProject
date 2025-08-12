@@ -3,11 +3,7 @@
     <p class="cities-list">{{ title }}</p>
 
     <div class="page-indicators">
-      <span
-        v-for="n in totalPages"
-        :key="n"
-        :class="{ dot: true, active: n - 1 === currentPage }"
-      />
+      <span v-for="n in totalPages" :key="n" :class="{ dot: true, active: n - 1 === currentPage }"/>
     </div>
 
     <span class="cities-link" @click="emit('allClick')">{{ allTitle }}</span>
@@ -40,7 +36,6 @@
           <img :src="getImage(item)" alt="" class="city-image" />
         </template>
 
-        <!-- Afisha overlay only for events (Attraction) -->
         <template v-if="title === 'Афиша событий' && isAttraction(item)">
       <div class="event-info compact">
         <h4 class="event-name">{{ getName(item) }}</h4>
@@ -48,6 +43,24 @@
         <p v-if="item.location" class="event-location">{{ item.location }}</p>
       </div>
     </template>
+
+    <template v-else-if="isPopularSection && isAttraction(item)">
+  <div class="popular-compact">
+    <div class="rating-badge">
+      ⭐ {{ formatRating(item.rating) }}
+      <span v-if="item.checkedIn" class="sep">•</span>
+      <span v-if="item.checkedIn">{{ item.checkedIn }}</span>
+    </div>
+
+    <div class="popular-bottom2">
+      <div class="popular-name">{{ getName(item) }}</div>
+      <div class="popular-chips">
+        <span v-if="item.category" class="chip">{{ item.category }}</span>
+        <span v-if="priceLabel(item)" class="chip strong">{{ priceLabel(item) }}</span>
+      </div>
+    </div>
+  </div>
+</template>
 
         <template v-else>
           <button
@@ -83,7 +96,6 @@ const emit = defineEmits<{
   (e: 'allClick'): void
 }>()
 
-/* ---------- helpers & type guards ---------- */
 const isAfisha = computed(() => props.title === 'Афиша событий')
 
 function isAttraction(item: Item): item is Attraction {
@@ -108,6 +120,52 @@ function formatDate(dateStr?: string) {
     month: 'long',
     year: 'numeric',
   }).format(d)
+}
+
+const isPopularSection = computed(() =>
+  (props.title || '').toLowerCase().includes('популяр')
+)
+
+function formatRating(r?: number) {
+  if (typeof r !== 'number') return '—'
+  return Math.round(r * 10) / 10
+}
+
+function isRestaurant(item: Item): boolean {
+  const cat = (item as any)?.category?.toString().toLowerCase() || ''
+  const type = (item as any)?.type?.toString().toLowerCase() || ''
+  return cat.includes('есть') || cat.includes('ресторан') || type === 'restaurant'
+}
+
+function priceLabel(item: Item): string | null {
+  // Prefer symbolic price levels
+  const sym = (item as any)?.priceLevel as string | undefined // '$'..'$$$$'
+  if (sym) {
+    const map: Record<string, string> = {
+      '$': 'Недорого',
+      '$$': 'Средне',
+      '$$$': 'Дорого',
+      '$$$$': 'Премиум',
+    }
+    const m = map[sym]
+    if (m) return m
+  }
+
+  if (isRestaurant(item)) {
+    const avg = (item as any)?.avgPrice
+    if (typeof avg === 'number') {
+      if (avg < 800) return 'Недорого'
+      if (avg < 2000) return 'Средне'
+      return 'Дорого'
+    }
+  }
+
+  const p = (item as any)?.price
+  if (typeof p === 'number') {
+    return p === 0 ? '0₽' : `от ${p} ₽`
+  }
+
+  return null
 }
 
 const carouselRef = ref<HTMLElement | null>(null)
@@ -140,7 +198,6 @@ function scrollToPage(nextPage: number) {
   const el = carouselRef.value
   if (!el) return
   const total = totalPages.value
-  // loop
   if (nextPage >= total) currentPage.value = 0
   else if (nextPage < 0) currentPage.value = total - 1
   else currentPage.value = nextPage
@@ -155,7 +212,7 @@ function startAutoScroll() {
   stopAutoScroll()
   autoScrollTimer = window.setInterval(() => {
     scrollToPage(currentPage.value + 1)
-  }, 5000)
+  }, 3500)
 }
 
 function stopAutoScroll() {
@@ -228,7 +285,6 @@ function onTouchEnd() {
   onUserInteraction()
 }
 
-/* ---------- lifecycle ---------- */
 onMounted(async () => {
   scrollToPage(0)
   startAutoScroll()
@@ -250,6 +306,8 @@ onUnmounted(() => {
   observer?.disconnect()
   stopAutoScroll()
 })
+
+
 </script>
 
 <style scoped>
@@ -489,6 +547,141 @@ onUnmounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Popular overlay */
+.popular-info {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 30%;
+  padding: 0.55rem 0.65rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.25rem;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.65) 0%,
+    rgba(0, 0, 0, 0.35) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none; 
+}
+
+.popular-top {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.popular-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.popular-info .chip {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  backdrop-filter: blur(2px);
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popular-info .price {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.popular-info .chip,
+.popular-info .price {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- Popular compact presentation --- */
+.popular-compact {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* top-left badge */
+.rating-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 999px;
+  backdrop-filter: blur(2px);
+  line-height: 1;
+}
+.rating-badge .sep { opacity: 0.7; margin: 0 0.25rem; }
+
+.popular-bottom2 {
+  background: linear-gradient(
+    to top,
+    rgba(0,0,0,0.70) 0%,
+    rgba(0,0,0,0.35) 60%,
+    rgba(0,0,0,0) 100%
+  );
+  padding: 0.5rem 0.6rem 0.55rem;
+  color: #fff;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+.popular-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; line-clamp: 1;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.popular-chips {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.popular-chips .chip {
+  max-width: 60%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 0.78rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
+  backdrop-filter: blur(2px);
+}
+.popular-chips .chip.strong {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.35);
+  font-weight: 700;
+}
+
 
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(255,191,71,0.7); }

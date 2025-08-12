@@ -4,7 +4,7 @@ export type ExcursionType = 'турфирма' | 'мини группа'
 export type TransportType = 'автобус' | 'индивидуально' | 'пешком' | 'прочее'
 export type DurationRange = '1-3ч' | '3-5ч' | '5-8ч' | 'весь день'
 export type Season = 'лето' | 'зима' | 'только хорошая погода'
-export type PriceLevel = 'бюджетные' | 'средние' | 'дорогие' | 'премиум'
+export type PriceLevel = 'бюджетные' | 'средние' | 'дорогие' 
 export type PlaceType = 'ресторан' | 'кафе' | 'бар' | 'кофейня' | 'пиццерия'
 
 export interface Attraction {
@@ -51,7 +51,7 @@ export const allAttractions = ref<Attraction[]>([
     name: 'Аэротруба',
     category: 'Активный отдых',
     image: '/Aerotruba.jpg',
-    date: '2025-08-23T10:45:00',
+    date: '2025-08-22T10:45:00',
     checkedIn: 80,
     price: 0,
     location: 'Спортцентр Калининград',
@@ -99,13 +99,14 @@ export const allAttractions = ref<Attraction[]>([
     placeType: 'ресторан',
     canReserve: true,
     city:"Калининград",
+    checkedIn:32,
   },
   {
     id: 4,
     name: 'Аэротруба',
     category: 'Активный отдых',
     image: '/Aerotruba.jpg',
-    date: '2025-08-23T10:45:00',
+    date: '2025-08-20T10:45:00',
     checkedIn: 80,
     price: 0,
     location: 'Спортцентр Калининград',
@@ -114,7 +115,7 @@ export const allAttractions = ref<Attraction[]>([
     whatsapp: 'https://chat.whatsapp.com/example1',
     instagram: 'https://instagram.com/example1',
     description: 'Посещение аэротрубы',
-    rating:4.6,
+    rating:4,
     city:"Калининград",
   },
   {

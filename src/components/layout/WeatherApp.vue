@@ -191,5 +191,3 @@ const selectDay = (index: number) => {
   }
 }
 </style>
-
-default export 

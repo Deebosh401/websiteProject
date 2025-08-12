@@ -50,7 +50,16 @@
       />
     </div>
 
-    <div id="popular"><Popular /></div>
+    <div id="popular">
+  <Categories
+    title="Популярные"
+    allTitle="Посмотреть все"
+    :items="popularItems"
+    item-key="name"
+    @itemClick="(item) => router.push({ name: 'event-detail', params: { id: item.id } })"
+    @allClick="() => router.push({ name: 'all-categories' })"
+  />
+</div>
     <div id="weather"><WeatherApp /></div>
     <div id="guides"><Guides /></div>
     <div id="slang"><SlangJokes /></div>
@@ -71,8 +80,7 @@ import SlangJokes from "../components/layout/SlangJokes.vue";
 import FirstHandExperience from "../components/layout/FirstHandExperience.vue";
 import Map from "../components/layout/Map.vue";
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { citiesData, categoriesCarouselData } from "../Data";
-import { allAttractions} from "../Data";
+import { citiesData, categoriesCarouselData,allAttractions } from "../Data";
 import { useRouter } from "vue-router";
 
 const router = useRouter()
@@ -110,6 +118,39 @@ const afishaItems = computed(() => {
     .map(({ _ts, ...rest }) => rest)
 })
 
+const popularItems = computed(() => {
+  const toNum = (v, d = 0) =>
+    typeof v === 'number'
+      ? v
+      : typeof v === 'string'
+      ? Number(v.replace(/[^\d.]/g, '')) || d
+      : d
+
+  return [...(Array.isArray(allAttractions.value) ? allAttractions.value : [])]
+    .filter(a => a && (a.rating != null || a.checkedIn != null))
+    .map(a => ({
+      ...a,
+      _rating: toNum(a.rating),
+      _reviews: toNum(a.reviewsCount ?? a.ratingCount ?? 0),
+      _fallbackPop: toNum(a.checkedIn ?? 0),
+    }))
+    .sort((a, b) => {
+      const byRating = b._rating - a._rating
+      if (byRating !== 0) return byRating
+
+      const byReviews = b._reviews - a._reviews
+      if (byReviews !== 0) return byReviews
+
+      const byFallback = b._fallbackPop - a._fallbackPop
+      if (byFallback !== 0) return byFallback
+
+      return (a.name || '').localeCompare(b.name || '')
+    })
+    .slice(0, 6)
+    .map(({ _rating, _reviews, _fallbackPop, ...rest }) => rest)
+})
+
+
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -125,6 +166,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', checkScroll)
 })
+
 </script>
   
 <style scoped>

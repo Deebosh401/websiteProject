@@ -37,7 +37,7 @@
       <div class="weather-modal">
         <div class="modal-header">
           <h3></h3>
-          <!-- <button class="close-btn" @click="closeModals">✕</button> -->
+          <button class="close-btn" @click="closeModals">✕</button>
         </div>
         <WeatherApp />
          <button class="ack-btn" @click="closeModals">Закрыть</button>
@@ -84,15 +84,14 @@ const phrases = [
 .icon-button-row {
   display: flex;
   justify-content: center;
-  gap: 5%;
-  padding: 2rem 0;
+  gap: 3%;
+  padding: 0;
   flex-wrap: wrap;
 }
 
 .icon-button {
-  width: 30vw;
   aspect-ratio: 1 / 1;
-  font-size: clamp(3rem, 4vw, 3rem);
+  font-size: clamp(1.5rem, 4vw, 3rem);
   border-radius: 16px;
   border: none;
   background: rgba(225, 245, 254, 0.9);
@@ -152,14 +151,14 @@ const phrases = [
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 2rem;
   cursor: pointer;
+  padding-right:3vh;
 }
 
 .ack-btn {
