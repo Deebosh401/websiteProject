@@ -206,6 +206,43 @@ const guides = ref<Guide[]>([
     avatar: '/guide3.png',
     bio: 'Семейные маршруты, дюны и зелёные зоны, кафе с лучшими десертами.',
     availability: ['2025-08-15', '2025-08-18', '2025-08-22']
+  },
+  {
+    id: 3,
+    name: 'Мария',
+    city: 'Зеленоградск',
+    languages: ['Русский', 'Немецкий'],
+    rating: 5.0,
+    reviews: 102,
+    priceFrom: 2800,
+    verified: false,
+    avatar: '/guide3.png',
+    bio: 'Семейные маршруты, дюны и зелёные зоны, кафе с лучшими десертами.',
+    availability: ['2025-08-15', '2025-08-18', '2025-08-22']
+  },{
+    id: 3,
+    name: 'Мария',
+    city: 'Зеленоградск',
+    languages: ['Русский', 'Немецкий'],
+    rating: 5.0,
+    reviews: 102,
+    priceFrom: 2800,
+    verified: false,
+    avatar: '/guide3.png',
+    bio: 'Семейные маршруты, дюны и зелёные зоны, кафе с лучшими десертами.',
+    availability: ['2025-08-15', '2025-08-18', '2025-08-22']
+  },{
+    id: 3,
+    name: 'Мария',
+    city: 'Зеленоградск',
+    languages: ['Русский', 'Немецкий'],
+    rating: 5.0,
+    reviews: 102,
+    priceFrom: 2800,
+    verified: false,
+    avatar: '/guide3.png',
+    bio: 'Семейные маршруты, дюны и зелёные зоны, кафе с лучшими десертами.',
+    availability: ['2025-08-15', '2025-08-18', '2025-08-22']
   }
 ])
 
@@ -276,55 +313,92 @@ function book(g: Guide) { alert(`Забронировать ${g.name} — ско
 </script>
 
 <style scoped>
-.guides-section { margin-top: 0; }
+.guides-section {
+  margin-top: 0;
+ }
 
 .guides-header{
-  display:flex;justify-content:space-between;align-items:center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   margin:0 5vw .5rem;
 }
-.guides-header h2{font-size:clamp(1.2rem,3.5vw,1.5rem);font-weight:700}
+.guides-header h2{
+  font-size:clamp(1.2rem,3.5vw,1.5rem);
+  font-weight:700
+}
 .view-all{
-  font-size:16px;font-weight:500;color:rgb(26,58,107);cursor:pointer;
-  padding:5px 10px;border-radius:8px;
+  font-size:16px;
+  font-weight:500;
+  color:rgb(26,58,107);
+  cursor:pointer;
+  padding:5px 10px;
+  border-radius:8px;
   transition:background-color .3s ease,color .3s ease,transform .2s ease;
 }
 .view-all:hover{
-  background-color:rgba(255,218,185,.3);transform:scale(1.05);
-  border-radius:16px;color:#00b4d8;box-shadow:0 2px 8px rgba(0,0,0,.06);
+  background-color:rgba(255,218,185,.3);
+  transform:scale(1.05);
+  border-radius:16px;
+  color:#00b4d8;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
 }
 
 .filters{
-  display:grid;grid-template-columns:1fr 140px 160px 150px 160px;
-  gap:.6rem;padding:.5rem 5vw 1rem;
+  display:grid;
+  grid-template-columns:1fr 140px 160px 150px 160px;
+  gap:.6rem;
+  padding:.5rem 5vw 1rem;
 }
 .filter-input,.filter-select,.filter-date{
-  width:100%;height:40px;padding:0 .75rem;border-radius:10px;
-  border:1px solid #e5e7eb;background:#fff;font-size:.95rem;
+  width:100%;
+  height:40px;
+  padding:0 .75rem;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#fff;font-size:.95rem;
 }
 .filter-input:focus,.filter-select:focus,.filter-date:focus{
-  outline:none;border-color:#cbd5e1;box-shadow:0 0 0 3px rgba(59,130,246,.15);
+  outline:none;
+  border-color:#cbd5e1;
+  box-shadow:0 0 0 3px rgba(59,130,246,.15);
 }
 
 .guides-list{
-  display:grid;grid-auto-flow:column;grid-auto-columns:80%;
-  gap:.5rem;padding:0 5vw 2rem;overflow-x:auto;
-  scroll-snap-type:x mandatory;scrollbar-width:none;
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns:80%;
+  gap:.5rem;
+  padding:0 5vw 2rem;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scrollbar-width:none;
 }
-.guides-list::-webkit-scrollbar{display:none}
+.guides-list::-webkit-scrollbar{
+  display:none
+}
 @media (min-width:768px){
   .guides-list{
-    overflow:visible;grid-auto-flow:initial;grid-auto-columns:initial;
+    overflow:visible;
+    grid-auto-flow:initial;
+    grid-auto-columns:initial;
     grid-template-columns:repeat(3,1fr);
   }
 }
 
 .guide-card.compact{
-  position:relative;padding:.9rem;
+  position:relative;
+  padding:.9rem;
   background:linear-gradient(160deg,#d8d7d5,#fae0b966,#f7950347);
-  border-radius:20px;box-shadow:2px 6px 14px rgba(0,0,0,.08);
+  border-radius:20px;
+  box-shadow:2px 6px 14px rgba(0,0,0,.08);
   transition:transform .2s ease,box-shadow .25s ease,background .3s ease;
-  display:grid;grid-template-columns:72px 1fr;grid-template-rows:auto auto auto;
-  column-gap:.5rem;row-gap:.3rem;scroll-snap-align:center;
+  display:grid;
+  grid-template-columns:72px 1fr;
+  grid-template-rows:auto auto auto;
+  column-gap:.5rem;
+  row-gap:.3rem;
+  scroll-snap-align:center;
 }
 .guide-card.compact:hover{
   transform:translateY(-3px);
@@ -333,9 +407,16 @@ function book(g: Guide) { alert(`Забронировать ${g.name} — ско
 }
 
 .guide-avatar.tl{
-  grid-column:1/2;grid-row:1/2;width:72px;height:72px;border-radius:50%;
-  object-fit:cover;border:3px solid #b1b5bb;background:#fff;
-  align-self:start;justify-self:start;
+  grid-column:1/2;
+  grid-row:1/2;
+  width:72px;
+  height:72px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid #b1b5bb;
+  background:#fff;
+  align-self:start;
+  justify-self:start;
 }
 
 .row-top{
@@ -346,12 +427,31 @@ function book(g: Guide) { alert(`Забронировать ${g.name} — ско
   justify-content:center;
   gap:.5rem
 }
-.row-meta{grid-column:2/3;grid-row:2/3;display:flex;align-items:center;gap:.9rem;flex-wrap:wrap;color:#4b5563;font-size:.92rem}
-.row-actions{grid-column:2/3;grid-row:3/4;display:flex;align-items:center;gap:.6rem}
-.row-availability{grid-column:2/3}
+.row-meta{grid-column:2/3;
+  grid-row:2/3;
+  display:flex;
+  align-items:center;
+  gap:.9rem;
+  flex-wrap:wrap;
+  color:#4b5563;
+  font-size:.92rem
+}
+.row-actions{
+  grid-column:2/3;
+  grid-row:3/4;
+  display:flex;
+  align-items:center;
+  gap:.6rem
+}
+.row-availability{
+  grid-column:2/3
+}
 
 .row-langs{
-  grid-column:1/2;grid-row:2/4;display:grid;grid-template-columns:repeat(2,1fr);
+  grid-column:1/2;
+  grid-row:2/4;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
   gap:6px;align-content:start;
 }
 
@@ -363,81 +463,199 @@ function book(g: Guide) { alert(`Забронировать ${g.name} — ско
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.guide-rating{font-weight:800;color:#f59e0b;white-space:nowrap}
+.guide-rating{
+  font-weight:800;
+  color:#f59e0b;
+  white-space:nowrap
+}
 
-.meta-item{display:inline-flex;align-items:center;gap:.35rem}
-.meta-icon{font-size:1rem}
+.meta-item{
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem
+}
 
-.chip{background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.06)}
+.meta-icon{
+  font-size:1rem
+}
+
+.chip{
+  background:rgba(255,255,255,.75);
+  border:1px solid rgba(0,0,0,.06)
+}
+
 .chip-lang{
-  padding:.18rem .35rem;border-radius:999px;font-weight:700;font-size:.72rem;
-  letter-spacing:.3px;min-width:auto;text-align:center;background:rgba(255,255,255,.85);
+  padding:.18rem .35rem;
+  border-radius:999px;
+  font-weight:700;
+  font-size:.72rem;
+  letter-spacing:.3px;
+  min-width:auto;
+  text-align:center;
+  background:rgba(255,255,255,.85);
 }
 
 .details-button{
-  background:rgba(45,45,45,.38);color:#fff;border:none;padding:.44rem .8rem;
-  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:700;
-  transition:transform .2s ease,background .3s ease;backdrop-filter:blur(8px);
+  background:rgba(45,45,45,.38);
+  color:#fff;
+  border:none;
+  padding:.44rem .8rem;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:.92rem;
+  font-weight:700;
+  transition:transform .2s ease,background .3s ease;
+  backdrop-filter:blur(8px);
   flex:0 0 auto;
 }
-.details-button:hover{transform:scale(1.04)}
+.details-button:hover{
+  transform:scale(1.04)
+}
+
 .heart-button{
-  width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;
-  border-radius:10px;border:1px solid rgba(0,0,0,.08);background:rgba(255,255,255,.7);
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  border:1px solid rgba(0,0,0,.08);
+  background:rgba(255,255,255,.7);
 }
 
 .avail{
-  display:inline-flex;align-items:center;gap:.35rem;
-  font-size:.86rem;padding:.2rem .5rem;border-radius:8px;
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  font-size:.86rem;
+  padding:.2rem .5rem;
+  border-radius:8px;
 }
-.avail.ok{background:rgba(16,185,129,.1);color:#065f46}
-.avail.no{background:rgba(239,68,68,.12);color:#7f1d1d}
+
+.avail.ok{
+  background:rgba(16,185,129,.1);
+  color:#065f46
+}
+
+.avail.no{
+  background:rgba(239,68,68,.12);
+  color:#7f1d1d
+}
 
 .guide-modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.3);backdrop-filter:blur(6px);
-  display:grid;place-items:end;z-index:9999;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.3);
+  backdrop-filter:blur(6px);
+  display:grid;
+  place-items:end;
+  z-index:9999;
 }
 
 .guide-modal{
-  background:#fff;width:100%;max-width:560px;margin:0 auto;
-  border-radius:16px 16px 0 0;padding:20px 18px 22px;
-  animation:slideUp .25s ease;display:grid;row-gap:12px;
+  background:#fff;
+  width:100%;
+  max-width:560px;
+  margin:0 auto;
+  border-radius:16px 16px 0 0;
+  padding:20px 18px 22px;
+  animation:slideUp .25s ease;
+  display:grid;
+  row-gap:12px;
 }
 .modal-avatar{
-  width:96px;height:96px;border-radius:50%;object-fit:cover;margin:0 auto 6px;
+  width:96px;
+  height:96px;
+  border-radius:50%;
+  object-fit:cover;
+  margin:0 auto 6px;
 }
-.modal-name{margin:0 0 2px;text-align:center;font-size:1.25rem;font-weight:800}
+.modal-name{
+  margin:0 0 2px;
+  text-align:center;
+  font-size:1.25rem;
+  font-weight:800
+}
 
 .modal-meta{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;color:#374151;font-size:.98rem;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  color:#374151;
+  font-size:.98rem;
 }
-.modal-meta .meta-item{justify-content:center;white-space:nowrap}
+.modal-meta .meta-item{
+  justify-content:center;
+  white-space:nowrap
+}
 
 .modal-langs{
-  display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:10px;row-gap:8px;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  align-items:center;
+  column-gap:10px;
+  row-gap:8px;
 }
-.modal-langs .langs-label{font-weight:800;white-space:nowrap}
-.modal-langs .langs-chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip-pill{
-  background:#f7f7f9;border:1px solid #e7e7ee;border-radius:999px;
-  padding:4px 10px;font-weight:700;font-size:.85rem;letter-spacing:.3px;
+.modal-langs .langs-label{
+  font-weight:800;
+  white-space:nowrap
 }
 
-/* Description & actions */
-.modal-bio{margin:6px 0 4px;color:#3a3f47;font-size:1.02rem;line-height:1.55;text-align:center}
+.modal-langs .langs-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px
+}
+
+.chip-pill{
+  background:#f7f7f9;
+  border:1px solid #e7e7ee;
+  border-radius:999px;
+  padding:4px 10px;
+  font-weight:700;
+  font-size:.85rem;
+  letter-spacing:.3px;
+}
+
+.modal-bio{
+  margin:6px 0 4px;
+  color:#3a3f47;
+  font-size:1.02rem;
+  line-height:1.55;
+  text-align:center
+}
+
 .modal-actions{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:6px;
 }
 .cta,.secondary{
-  height:48px;border-radius:12px;font-weight:800;display:inline-flex;
-  align-items:center;justify-content:center;gap:8px;
+  height:48px;
+  border-radius:12px;
+  font-weight:800;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
 }
-.cta{background:linear-gradient(135deg,#2563eb,#00bcd4);color:#fff;border:none}
-.secondary{background:#eceff3;color:#111827;border:none}
+.cta{
+  background:linear-gradient(135deg,#2563eb,#00bcd4);
+  color:#fff;
+  border:none
+}
 
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.secondary{
+  background:#eceff3;
+  color:#111827;
+  border:none
+}
 
-/* Small screens */
+@keyframes slideUp{
+  from{transform:translateY(100%)}
+  to{transform:translateY(0)}}
+
 @media (max-width:360px){
   .guide-card.compact{column-gap:.6rem}
   .guide-avatar.tl{width:64px;height:64px}
@@ -445,7 +663,6 @@ function book(g: Guide) { alert(`Забронировать ${g.name} — ско
   .modal-meta{grid-template-columns:1fr;row-gap:6px}
 }
 
-/* Responsive filters: collapse to 2 columns */
 @media (max-width:860px){
   .filters{grid-template-columns:1fr 1fr}
 }

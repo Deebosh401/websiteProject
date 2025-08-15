@@ -9,7 +9,20 @@
     <span class="cities-link" @click="emit('allClick')">{{ allTitle }}</span>
   </div>
 
+  <!-- Loading Skeleton -->
+  <div v-if="loading" class="skeleton-container">
+    <div v-for="i in 6" :key="i" class="skeleton-card">
+      <div class="skeleton-image"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-title"></div>
+        <div class="skeleton-subtitle"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
   <div
+    v-else
     class="scroll-carousel"
     :class="{ 'afisha-mode': isAfisha }"
     ref="carouselRef"
@@ -18,23 +31,60 @@
     @touchstart="onTouchStart"
     @touchmove="onTouchMove"
     @touchend="onTouchEnd"
+    @keydown.left="previousPage"
+    @keydown.right="nextPage"
+    tabindex="0"
+    role="region"
+    :aria-label="`${title} карусель`"
   >
     <div
         v-for="(item, i) in displayItems"
         :key="itemKeyValue(item, i)"
         class="card"
-        :class="{ 'afisha-card': title === 'Афиша событий' }"
-        @click="emit('itemClick', item)"
+        :class="{ 
+          'afisha-card': title === 'Афиша событий',
+          'popular-card': isPopularSection,
+          'loading': item.loading
+        }"
+        @click="handleCardClick(item)"
+        @keydown.enter="handleCardClick(item)"
+        @keydown.space.prevent="handleCardClick(item)"
+        role="button"
+        :tabindex="0"
+        :aria-label="`${getName(item)} - ${getItemDescription(item)}`"
       >
       <div class="card-image-container">
         <template v-if="getImage(item).endsWith('.mp4')">
-          <video ref="videoRefs" autoplay loop muted playsinline preload="metadata" class="city-image">
+          <video 
+            ref="videoRefs" 
+            autoplay 
+            loop 
+            muted 
+            playsinline 
+            preload="metadata" 
+            class="city-image"
+            :poster="getVideoPoster(item)"
+            @loadstart="handleVideoLoad"
+            @canplay="handleVideoCanPlay"
+          >
             <source :src="getImage(item)" type="video/mp4" />
           </video>
         </template>
         <template v-else>
-          <img :src="getImage(item)" alt="" class="city-image" />
+          <img 
+            :src="getImage(item)" 
+            :alt="`${getName(item)} изображение`"
+            class="city-image" 
+            loading="lazy"
+            @load="handleImageLoad"
+            @error="handleImageError"
+          />
         </template>
+
+        <!-- Loading overlay -->
+        <div v-if="item.loading" class="loading-overlay">
+          <div class="loading-spinner"></div>
+        </div>
 
         <template v-if="title === 'Афиша событий' && isAttraction(item)">
       <div class="event-info compact">
@@ -65,7 +115,7 @@
         <template v-else>
           <button
             class="overlay-button"
-            @click.stop="emit('itemClick', item)"
+            @click="emit('itemClick', item)"
             role="button"
             :aria-label="`Открыть ${getName(item)}`"
           >
@@ -75,10 +125,29 @@
       </div>
     </div>
   </div>
+
+  <!-- Navigation Arrows -->
+  <button 
+    v-if="showNavigation" 
+    class="nav-arrow nav-prev" 
+    @click="previousPage"
+    aria-label="Предыдущая страница"
+  >
+    <Icon icon="mdi:chevron-left" />
+  </button>
+  <button 
+    v-if="showNavigation" 
+    class="nav-arrow nav-next" 
+    @click="nextPage"
+    aria-label="Следующая страница"
+  >
+    <Icon icon="mdi:chevron-right" />
+  </button>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
+import { Icon } from '@iconify/vue'
 import type { Attraction, CarouselInfo } from '../../Data'
 
 type Item = CarouselInfo | Attraction
@@ -89,6 +158,7 @@ const props = defineProps<{
   items: Item[]
   cardsPerPage?: number
   itemKey?: keyof CarouselInfo | keyof Attraction | string | null
+  loading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -97,598 +167,378 @@ const emit = defineEmits<{
 }>()
 
 const isAfisha = computed(() => props.title === 'Афиша событий')
+const isPopularSection = computed(() => props.title === 'Популярные')
+const showNavigation = computed(() => props.items.length > 6)
 
-function isAttraction(item: Item): item is Attraction {
-  return 'category' in item || 'date' in item || 'location' in item
-}
-function getImage(item: Item): string {
-  return (item as Attraction).image ?? (item as CarouselInfo).image ?? ''
-}
-function getName(item: Item): string {
-  return (item as any).name ?? ''
-}
-function itemKeyValue(item: Item, i: number) {
-  const keyProp = (props.itemKey ?? '') as string
-  const val = keyProp && (item as any)[keyProp]
-  return val != null ? String(val) : i
-}
-function formatDate(dateStr?: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(d)
+// Loading state
+const loading = ref(props.loading || false)
+const loadedItems = ref(new Set<number>())
+
+// Touch handling for mobile
+let touchStartX = 0
+let touchStartY = 0
+let touchEndX = 0
+let touchEndY = 0
+
+const onTouchStart = (e: TouchEvent) => {
+  touchStartX = e.changedTouches[0].screenX
+  touchStartY = e.changedTouches[0].screenY
 }
 
-const isPopularSection = computed(() =>
-  (props.title || '').toLowerCase().includes('популяр')
-)
-
-function formatRating(r?: number) {
-  if (typeof r !== 'number') return '—'
-  return Math.round(r * 10) / 10
+const onTouchMove = (e: TouchEvent) => {
+  e.preventDefault()
 }
 
-function isRestaurant(item: Item): boolean {
-  const cat = (item as any)?.category?.toString().toLowerCase() || ''
-  const type = (item as any)?.type?.toString().toLowerCase() || ''
-  return cat.includes('есть') || cat.includes('ресторан') || type === 'restaurant'
+const onTouchEnd = (e: TouchEvent) => {
+  touchEndX = e.changedTouches[0].screenX
+  touchEndY = e.changedTouches[0].screenY
+  handleSwipe()
 }
 
-function priceLabel(item: Item): string | null {
-  // Prefer symbolic price levels
-  const sym = (item as any)?.priceLevel as string | undefined // '$'..'$$$$'
-  if (sym) {
-    const map: Record<string, string> = {
-      '$': 'Недорого',
-      '$$': 'Средне',
-      '$$$': 'Дорого',
-      '$$$$': 'Премиум',
-    }
-    const m = map[sym]
-    if (m) return m
-  }
-
-  if (isRestaurant(item)) {
-    const avg = (item as any)?.avgPrice
-    if (typeof avg === 'number') {
-      if (avg < 800) return 'Недорого'
-      if (avg < 2000) return 'Средне'
-      return 'Дорого'
+const handleSwipe = () => {
+  const diffX = touchStartX - touchEndX
+  const diffY = touchStartY - touchEndY
+  
+  // Check if it's a horizontal swipe
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+    if (diffX > 0) {
+      nextPage()
+    } else {
+      previousPage()
     }
   }
-
-  const p = (item as any)?.price
-  if (typeof p === 'number') {
-    return p === 0 ? '0₽' : `от ${p} ₽`
-  }
-
-  return null
 }
 
-const carouselRef = ref<HTMLElement | null>(null)
-const videoRefs = ref<HTMLVideoElement[]>([])
-let observer: IntersectionObserver | null = null
-
-const displayItems = computed(() => props.items.slice(0, 6))
-
-const cardsPerPage = computed(() => (isAfisha.value ? 1 : (props.cardsPerPage ?? 2)))
-
+// Navigation
 const currentPage = ref(0)
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(displayItems.value.length / cardsPerPage.value))
-)
+const carouselRef = ref<HTMLElement>()
 
-function clamp(v: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, v))
-}
+const totalPages = computed(() => Math.ceil(props.items.length / (props.cardsPerPage || 6)))
 
-function getPageWidthPx() {
-  const el = carouselRef.value
-  if (!el) return 0
-  const card = el.querySelector('.card') as HTMLElement | null
-  if (!card) return 0
-  const gap = parseFloat(getComputedStyle(el).gap || '0')
-  return (card.offsetWidth + gap) * cardsPerPage.value
-}
-
-function scrollToPage(nextPage: number) {
-  const el = carouselRef.value
-  if (!el) return
-  const total = totalPages.value
-  if (nextPage >= total) currentPage.value = 0
-  else if (nextPage < 0) currentPage.value = total - 1
-  else currentPage.value = nextPage
-
-  const w = getPageWidthPx()
-  el.scrollTo({ left: currentPage.value * w, behavior: 'smooth' })
-}
-
-let autoScrollTimer: number | undefined
-function startAutoScroll() {
-  if (!isAfisha.value) return
-  stopAutoScroll()
-  autoScrollTimer = window.setInterval(() => {
-    scrollToPage(currentPage.value + 1)
-  }, 3500)
-}
-
-function stopAutoScroll() {
-  if (autoScrollTimer) {
-    window.clearInterval(autoScrollTimer)
-    autoScrollTimer = undefined
+const nextPage = () => {
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value++
+    scrollToPage()
   }
 }
-function onUserInteraction() {
-  if (isAfisha.value) startAutoScroll()
-}
 
-function onScroll() {
-  const el = carouselRef.value
-  if (!el) return
-  const w = getPageWidthPx()
-  if (!w) return
-  currentPage.value = clamp(Math.round(el.scrollLeft / w), 0, totalPages.value - 1)
-  onUserInteraction()
-}
-
-let wheelTimeout: number | undefined
-function onWheel() {
-  if (wheelTimeout) window.clearTimeout(wheelTimeout)
-  wheelTimeout = window.setTimeout(() => snapToNearestPage(), 40)
-}
-function snapToNearestPage() {
-  const el = carouselRef.value
-  if (!el) return
-  const w = getPageWidthPx()
-  if (!w) return
-  scrollToPage(Math.round(el.scrollLeft / w))
-  onUserInteraction()
-}
-
-const SWIPE_VELOCITY_THRESHOLD = 0.6
-const SWIPE_DISTANCE_RATIO = 0.25
-const touchStartX = ref(0)
-const lastTouchX = ref(0)
-const touchStartTime = ref(0)
-const isTouching = ref(false)
-
-function onTouchStart(e: TouchEvent) {
-  const t = e.touches[0]
-  touchStartX.value = t.clientX
-  lastTouchX.value = t.clientX
-  touchStartTime.value = performance.now()
-  isTouching.value = true
-}
-function onTouchMove(e: TouchEvent) {
-  if (!isTouching.value) return
-  lastTouchX.value = e.touches[0].clientX
-}
-function onTouchEnd() {
-  if (!isTouching.value) return
-  isTouching.value = false
-  const w = getPageWidthPx()
-  if (!w) return snapToNearestPage()
-
-  const elapsed = performance.now() - touchStartTime.value
-  const dist = lastTouchX.value - touchStartX.value
-  const speed = Math.abs(dist) / Math.max(1, elapsed)
-  const dir = dist < 0 ? 1 : -1
-
-  if (speed >= SWIPE_VELOCITY_THRESHOLD || Math.abs(dist) >= w * SWIPE_DISTANCE_RATIO) {
-    scrollToPage(currentPage.value + dir)
-  } else {
-    snapToNearestPage()
+const previousPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--
+    scrollToPage()
   }
-  onUserInteraction()
 }
 
-onMounted(async () => {
-  scrollToPage(0)
-  startAutoScroll()
-
-  await nextTick()
-  const videos = (carouselRef.value?.querySelectorAll('video') ?? []) as NodeListOf<HTMLVideoElement>
-  videoRefs.value = Array.from(videos)
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      const v = entry.target as HTMLVideoElement
-      if (entry.isIntersecting) v.play().catch(() => {})
-      else v.pause()
+const scrollToPage = () => {
+  if (carouselRef.value) {
+    const cardWidth = carouselRef.value.scrollWidth / props.items.length
+    const scrollPosition = currentPage.value * cardWidth * (props.cardsPerPage || 6)
+    carouselRef.value.scrollTo({
+      left: scrollPosition,
+      behavior: 'smooth'
     })
-  }, { threshold: 0.5 })
-  videoRefs.value.forEach((v) => observer?.observe(v))
+  }
+}
+
+// Handle card clicks with loading state
+const handleCardClick = (item: Item) => {
+  if (!item.loading) {
+    emit('itemClick', item)
+  }
+}
+
+// Image and video loading
+const handleImageLoad = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  const index = Array.from(carouselRef.value?.children || []).indexOf(img.closest('.card') as HTMLElement)
+  loadedItems.value.add(index)
+}
+
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = '/default-avatar.png' // Fallback image
+}
+
+const handleVideoLoad = (event: Event) => {
+  const video = event.target as HTMLVideoElement
+  const index = Array.from(carouselRef.value?.children || []).indexOf(video.closest('.card') as HTMLElement)
+  loadedItems.value.add(index)
+}
+
+const handleVideoCanPlay = (event: Event) => {
+  const video = event.target as HTMLVideoElement
+  video.play().catch(() => {
+    // Autoplay failed, but that's okay
+  })
+}
+
+// Keyboard navigation
+const onKeydown = (event: KeyboardEvent) => {
+  switch (event.key) {
+    case 'ArrowLeft':
+      event.preventDefault()
+      previousPage()
+      break
+    case 'ArrowRight':
+      event.preventDefault()
+      nextPage()
+      break
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
-  observer?.disconnect()
-  stopAutoScroll()
+  document.removeEventListener('keydown', onKeydown)
 })
 
+// Watch for loading state changes
+watch(() => props.loading, (newLoading) => {
+  loading.value = newLoading || false
+})
 
+function isAttraction(item: Item): item is Attraction {
+  return 'category' in item && 'price' in item
+}
+
+function itemKeyValue(item: Item, index: number): string | number {
+  if (props.itemKey && item[props.itemKey as keyof Item]) {
+    return item[props.itemKey as keyof Item] as string | number
+  }
+  return index
+}
+
+function getName(item: Item): string {
+  return 'name' in item ? item.name : 'Unknown'
+}
+
+function getImage(item: Item): string {
+  if (isAttraction(item)) {
+    return item.image || '/default-avatar.png'
+  }
+  return item.image || '/default-avatar.png'
+}
+
+function getVideoPoster(item: Item): string {
+  // Generate a poster image for videos
+  return item.image?.replace('.mp4', '.jpg') || '/default-avatar.png'
+}
+
+function getItemDescription(item: Item): string {
+  if (isAttraction(item)) {
+    return `${item.category}${item.city ? ` в ${item.city}` : ''}`
+  }
+  return item.description || ''
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function formatRating(rating?: number): string {
+  return rating ? rating.toFixed(1) : '0.0'
+}
+
+function priceLabel(item: Attraction): string {
+  if (item.price === 0) return 'Бесплатно'
+  if (item.price) return `${item.price} ₽`
+  return ''
+}
+
+const onScroll = () => {
+  // Update current page based on scroll position
+  if (carouselRef.value) {
+    const scrollLeft = carouselRef.value.scrollLeft
+    const cardWidth = carouselRef.value.scrollWidth / props.items.length
+    const cardsPerPage = props.cardsPerPage || 6
+    currentPage.value = Math.round(scrollLeft / (cardWidth * cardsPerPage))
+  }
+}
+
+const onWheel = (e: WheelEvent) => {
+  e.preventDefault()
+  if (e.deltaY > 0) {
+    nextPage()
+  } else {
+    previousPage()
+  }
+}
 </script>
 
 <style scoped>
-.cities-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 3vw;
-  margin-top: 1rem;
+/* Skeleton Loading */
+.skeleton-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.skeleton-card {
+  background: var(--bg-secondary, #f8f9fa);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+.skeleton-content {
+  padding: 1rem;
+}
+
+.skeleton-title {
+  height: 20px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
   margin-bottom: 0.5rem;
+  border-radius: 4px;
 }
-.cities-list {
-  font-size: 20px;
-  font-weight: bold;
-  opacity: 0;
-  transform: translateX(-20px);
-  animation: slideInLeft 0.6s ease-out forwards;
+
+.skeleton-subtitle {
+  height: 16px;
+  width: 60%;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px;
 }
-.page-indicators {
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Navigation Arrows */
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  cursor: pointer;
   display: flex;
-  gap: 0.3rem;
   align-items: center;
   justify-content: center;
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ccc;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-}
-.dot.active {
-  background-color: #333;
-  transform: scale(1.3);
-}
-.cities-link {
-  font-size: 16px;
-  font-weight: 500;
-  color: rgb(26, 58, 107);
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 8px;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  opacity: 0;
-  transform: translateX(20px);
-  animation: slideInRight 0.6s ease-out forwards;
-  animation-delay: 0.2s;
-}
-.cities-link:hover {
-  background-color: rgba(255, 218, 185, 0.3);
-  transform: scale(1.05);
-  border-radius: 16px;
-  color: #00b4d8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 10;
 }
 
-.scroll-carousel {
-  display: flex;
-  gap: 2vw;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding: 0.1rem 2vw 1rem 2vw;
-  scroll-padding-left: 2vw;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  scroll-behavior: smooth;
-  overscroll-behavior-x: contain;
-  touch-action: pan-x;
-}
-.scroll-carousel::-webkit-scrollbar { display: none; }
-
-.card {
-  flex: 0 0 calc((100% - 2vw) / 2);
-  scroll-snap-align: start;
-  background-color: #f8f5f2;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-.card:hover {
-  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
-  transform: translateY(-2px);
-  transition: transform 0.3s ease;
+.nav-arrow:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.scroll-carousel.afisha-mode .card {
-  flex: 0 0 100%;
-  height: 85%;
+.nav-prev {
+  left: 10px;
 }
 
-.card-image-container {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  transition: transform 0.3s ease, filter 0.3s ease;
-  border-radius: 20px;
-  cursor: grab;
-}
-.city-image,
-.city-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 20px;
-  transition: transform 0.3s ease, filter 0.3s ease;
+.nav-next {
+  right: 10px;
 }
 
-
-.card-image-container:hover .city-image {
-  transform: scale(1.03);
-  filter: brightness(1.1);
-}
-
-.overlay-button {
+/* Loading Overlay */
+.loading-overlay {
   position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: transparent;
-  color: white;
-  border: thick double white;
-  padding: 8px 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.3s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90%;
-}
-.overlay-button:hover { transform: translateX(-50%) scale(1.05); }
-
-.event-info {
-  position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
-  width: 100%;
-  height: 26%;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 0.1rem;
-  padding:  0.5rem;
-  color: #fff;
-  background: linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0.25), rgba(0,0,0,0));
-  border-top: 0.25px solid rgba(255,255,255,0.15);
-  box-shadow: inset 0 8px 24px rgba(0,0,0,0.25);
-  backdrop-filter: blur(1px);
-}
-.event-name {
-  font-weight: 500;
-  font-size: clamp(1rem, 1vw, 1.2rem);
-  letter-spacing: 0.2px;
-  text-shadow: 0 1px 2px rgba(193, 156, 71, 0.35);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.event-date,
-.event-location {
-  font-size: clamp(0.8rem, 1vw, 0.85rem);
-  line-height: 1.2;
-  opacity: 0.95;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  z-index: 5;
 }
 
-.event-date::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-right: 4px;
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid var(--primary-color, #3b82f6);
   border-radius: 50%;
-  background: #ffbf47;
-  box-shadow: 0 0 0 0 rgba(255,191,71,0.9);
-  animation: pulse 1.9s infinite;
+  animation: spin 1s linear infinite;
 }
 
-.afisha-card {
-  flex: 0 0 100%;    
-  aspect-ratio: 16 / 10;
-  max-height: 260px;
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Card Styles */
+.card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
   overflow: hidden;
 }
 
-@media (min-width: 640px) {
-  .afisha-card { max-height: 260px; }
-}
-@media (min-width: 1024px) {
-  .afisha-card { max-height: 280px; }
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px var(--shadow-color, rgba(0, 0, 0, 0.15));
 }
 
-.afisha-card .card-image-container,
-.afisha-card .city-image {
-  height: 100%;
-  object-fit: cover;
+.card:focus {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
 }
 
-.event-info.compact {
-  padding: 0rem 0.5rem 0.1rem;   
-  gap: 0.1rem;                     
-  background: linear-gradient(
-    to top,
-    rgba(0,0,0,0.65) 0%,
-    rgba(0,0,0,0.45) 60%,
-    rgba(0,0,0,0.0) 100%
-  );
+/* Accessibility improvements */
+.card[role="button"]:focus-visible {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
 }
 
-.afisha-card .event-name {
-  font-weight: 600;
-  font-size: clamp(1rem, 3.6vw, 1.05rem);
-  line-height: 1.15;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .nav-arrow {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .skeleton-container {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }
 }
 
-.afisha-card .event-date,
-.afisha-card .event-location {
-  font-size: clamp(0.75rem, 3.2vw, 0.9rem);
-  line-height: 1.2;
-  margin: 0;
-  opacity: 0.9;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Dark mode support */
+[data-theme="dark"] .skeleton-image,
+[data-theme="dark"] .skeleton-title,
+[data-theme="dark"] .skeleton-subtitle {
+  background: linear-gradient(90deg, #2d2d2d 25%, #404040 50%, #2d2d2d 75%);
 }
 
-/* Popular overlay */
-.popular-info {
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 30%;
-  padding: 0.55rem 0.65rem;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 0.25rem;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.65) 0%,
-    rgba(0, 0, 0, 0.35) 60%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  pointer-events: none; 
+[data-theme="dark"] .nav-arrow {
+  background: rgba(45, 45, 45, 0.9);
+  color: white;
 }
 
-.popular-top {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  line-height: 1;
+[data-theme="dark"] .nav-arrow:hover {
+  background: #2d2d2d;
 }
 
-.popular-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
+[data-theme="dark"] .loading-overlay {
+  background: rgba(26, 26, 26, 0.8);
 }
-
-.popular-info .chip {
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  padding: 0.2rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  backdrop-filter: blur(2px);
-  max-width: 60%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.popular-info .price {
-  font-weight: 600;
-  font-size: 0.86rem;
-}
-
-.popular-info .chip,
-.popular-info .price {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* --- Popular compact presentation --- */
-.popular-compact {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-/* top-left badge */
-.rating-badge {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  font-weight: 700;
-  font-size: 0.82rem;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 999px;
-  backdrop-filter: blur(2px);
-  line-height: 1;
-}
-.rating-badge .sep { opacity: 0.7; margin: 0 0.25rem; }
-
-.popular-bottom2 {
-  background: linear-gradient(
-    to top,
-    rgba(0,0,0,0.70) 0%,
-    rgba(0,0,0,0.35) 60%,
-    rgba(0,0,0,0) 100%
-  );
-  padding: 0.5rem 0.6rem 0.55rem;
-  color: #fff;
-  border-bottom-left-radius: 20px;
-  border-bottom-right-radius: 20px;
-}
-
-.popular-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 1; line-clamp: 1;
-  -webkit-box-orient: vertical; overflow: hidden;
-}
-
-.popular-chips {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-}
-
-.popular-chips .chip {
-  max-width: 60%;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  font-size: 0.78rem;
-  padding: 0.18rem 0.5rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.16);
-  border: 1px solid rgba(255,255,255,0.24);
-  backdrop-filter: blur(2px);
-}
-.popular-chips .chip.strong {
-  background: rgba(255,255,255,0.25);
-  border-color: rgba(255,255,255,0.35);
-  font-weight: 700;
-}
-
-
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(255,191,71,0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(255,191,71,0); }
-  100% { box-shadow: 0 0 0 0 rgba(255,191,71,0); }
-}
-
-@keyframes slideInLeft { to { opacity: 1; transform: translateX(0); } }
-@keyframes slideInRight { to { opacity: 1; transform: translateX(0); } }
 </style>

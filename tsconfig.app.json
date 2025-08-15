@@ -1,23 +1,23 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
-    "types": ["vue"],
+    "types": ["vue", "vite/client"],
     "target": "esnext",
-    "module": "esnext",   
+    "module": "esnext",
     "moduleResolution": "node",
     "jsx": "preserve",
     "esModuleInterop": true,
     "lib": ["esnext", "dom"],
-    
+
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
+    // ⚠️ Removed "erasableSyntaxOnly"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }
