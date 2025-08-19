@@ -61,15 +61,36 @@
         <div v-else-if="error" class="error">{{ error }}</div>
 
         <!-- Weather content -->
-        <div class="weather-widget" v-else-if="currentWeather">
+        <div class="weather-widget" v-else-if="currentWeather" :class="theme">
           <div class="top-section">
             <div class="location-info">
               <div class="city">{{ city }}</div>
-              <div class="temp">{{ Math.round(currentWeather.temp_c) }}°</div>
+              <div class="temp-row">
+                <div class="temp">{{ formatTemp(currentWeather.temp_c) }}</div>
+                <button class="unit-toggle" @click="useCelsius = !useCelsius">{{ useCelsius ? '°C' : '°F' }}</button>
+              </div>
               <div class="condition">{{ currentWeather.condition.text }}</div>
             </div>
             <div class="weather-icon">
               <img :src="currentWeather.condition.icon" alt="weather" />
+            </div>
+          </div>
+
+          <div class="metrics-row">
+            <div class="metric-card" aria-label="Ветер">
+              <span class="m-ico">💨</span>
+              <span class="m-val">{{ details.wind }} км/ч</span>
+              <span class="m-lbl">Ветер</span>
+            </div>
+            <div class="metric-card" aria-label="Влажность">
+              <span class="m-ico">💧</span>
+              <span class="m-val">{{ details.humidity }}%</span>
+              <span class="m-lbl">Влажность</span>
+            </div>
+            <div class="metric-card" aria-label="UV">
+              <span class="m-ico">☀️</span>
+              <span class="m-val">{{ details.uv }}</span>
+              <span class="m-lbl">UV</span>
             </div>
           </div>
 
@@ -83,6 +104,12 @@
               @click="selectDay(index)"
             >
               <div class="day">{{ formatDay(day.date) }}</div>
+              <img :src="day.day.condition.icon" alt="" class="f-icon" />
+              <div class="minmax">
+                <span>{{ formatTemp(day.day.mintemp_c ?? day.day.avgtemp_c) }}</span>
+                <span>/</span>
+                <span>{{ formatTemp(day.day.maxtemp_c ?? day.day.avgtemp_c) }}</span>
+              </div>
               <div class="date">{{ formatDate(day.date) }}</div>
             </div>
             <div class="end-spacer" aria-hidden="true"></div>
@@ -96,7 +123,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+const emit = defineEmits<{ (e: 'modal-toggle', open: boolean): void }>()
 
 /** -----------------------
  * Dictionary state/logic
@@ -127,12 +155,15 @@ const error = ref<string | null>(null)
 
 interface WeatherCondition { text: string; icon: string }
 interface CurrentWeather { temp_c: number; condition: WeatherCondition }
-interface ForecastDay { date: string; day: { avgtemp_c: number; condition: WeatherCondition } }
+interface ForecastDay { date: string; day: { avgtemp_c: number; mintemp_c?: number; maxtemp_c?: number; condition: WeatherCondition } }
 
 const city = ref('')
 const currentWeather = ref<CurrentWeather | null>(null)
 const forecast = ref<ForecastDay[]>([])
 const selectedDayIndex = ref<number>(0)
+const useCelsius = ref(true)
+const theme = computed(() => (currentWeather.value && Math.round(currentWeather.value.temp_c) <= 0 ? 'cold' : 'warm'))
+const details = ref<{ wind: number; humidity: number; uv: number }>({ wind: 0, humidity: 0, uv: 0 })
 
 /* Your coordinates (Kaliningrad default) and API key */
 const API_KEY = '393246f465d54987937212209251706'
@@ -150,6 +181,7 @@ const fetchWeather = async () => {
     const data = await res.json()
     city.value = data.location?.name ?? 'Город'
     currentWeather.value = data.current
+    details.value = { wind: Math.round(data.current?.wind_kph ?? 0), humidity: Math.round(data.current?.humidity ?? 0), uv: Math.round(data.current?.uv ?? 0) }
     forecast.value = (data.forecast?.forecastday ?? []).slice(0, 6)
     selectedDayIndex.value = 0
   } catch (e: any) {
@@ -177,6 +209,9 @@ const formatDate = (iso: string): string => {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 }
 
+const toF = (c: number) => (c * 9) / 5 + 32
+const formatTemp = (c: number) => `${Math.round(useCelsius.value ? c : toF(c))}°`
+
 /** -----------------------
  * Modal controls
  * --------------------- */
@@ -197,6 +232,11 @@ const openWeather = () => {
 /* Fetch weather only when the weather modal opens */
 watch(showWeather, (on) => {
   if (on) fetchWeather()
+})
+
+// Notify parent when any modal in this widget opens/closes
+watch([showDictionary, showWeather], ([d, w]) => {
+  emit('modal-toggle', Boolean(d || w))
 })
 </script>
 
@@ -320,17 +360,28 @@ watch(showWeather, (on) => {
 
 /* weather: widget */
 .weather-widget {
-  background: #fff;
+  position: relative;
+  background: radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.75) 60%, rgba(255,255,255,0.6) 100%), #fff;
   border-radius: 20px;
-  padding: 0.1rem;
-  max-width: 420px;
+  padding: 0.75rem 0.6rem 0.8rem;
+  max-width: 460px;
   margin: 0.5rem auto 0;
   font-family: 'Arial', sans-serif;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
   color: #1f2f3f;
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: hidden;
+}
+
+.weather-widget::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 60% at 100% 0%, rgba(255,200,120,0.25), rgba(255,200,120,0) 60%), radial-gradient(50% 50% at 0% 100%, rgba(120,180,255,0.2), rgba(120,180,255,0) 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .top-section {
@@ -338,6 +389,8 @@ watch(showWeather, (on) => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .location-info {
@@ -346,11 +399,19 @@ watch(showWeather, (on) => {
   padding: 0 1rem;
 }
 
-.city { font-size: 1.3rem; font-weight: bold; }
-.temp { font-size: 1.5rem; color: #f26c00; font-weight: bold; }
+.city { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.2px; }
+.temp-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.15rem 0; }
+.temp { font-size: 1.9rem; color: #f26c00; font-weight: 800; }
+.unit-toggle { border: 1px solid rgba(0,0,0,0.08); border-radius: 999px; padding: 0.18rem 0.5rem; font-size: 0.8rem; background: rgba(255,255,255,0.7); }
 .condition { font-size: 1rem; color: #374151; }
 
-.weather-icon img { width: 60px; height: auto; }
+.weather-icon img { width: 64px; height: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.12)); }
+
+.metrics-row { display: flex; gap: 0.5rem; margin: 0.35rem 0 0.25rem; width: 100%; justify-content: space-around; }
+.metric-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; width: 30%; padding: 0.4rem 0.2rem; border-radius: 14px; background: rgba(255,255,255,0.6); box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 14px rgba(0,0,0,0.06); }
+.metric-card .m-ico { font-size: 1rem; }
+.metric-card .m-val { font-weight: 700; font-size: 0.95rem; }
+.metric-card .m-lbl { font-size: 0.75rem; opacity: 0.75; }
 
 /* forecast row */
 .forecast-scroll {
@@ -360,23 +421,29 @@ watch(showWeather, (on) => {
   overflow-x: auto;
   padding: 0.5rem 0.25rem;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 .forecast-scroll::-webkit-scrollbar { display: none; }
 
 .forecast-icon {
   flex: 0 0 auto;
-  width: 60px; height: 60px; border-radius: 50%;
-  background: #f5f5f5; color: #374151; text-align: center;
+  width: 72px; height: 86px; border-radius: 16px;
+  background: rgba(255,255,255,0.7); color: #374151; text-align: center;
   font-size: 0.75rem; font-weight: bold;
-  display: flex; flex-direction: column; justify-content: center;
-  transition: all 0.3s ease; border: 2px solid transparent;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  transition: all 0.25s ease; border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
 }
 .forecast-icon.active {
   background: linear-gradient(135deg, #f26c00 0%, #ffd900 100%);
-  color: white; transform: scale(1.1); border: 2px solid #ffaa00;
-  box-shadow: 0 4px 10px rgba(242, 108, 0, 0.2);
+  color: white; transform: translateY(-2px) scale(1.02);
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 10px 24px rgba(242, 108, 0, 0.25);
 }
 .day { font-size: 0.75rem; }
+.f-icon { width: 32px; height: 32px; object-fit: contain; margin: 0.25rem 0; }
+.minmax { display: flex; gap: 0.15rem; align-items: baseline; font-size: 0.75rem; }
 .date { font-size: 0.7rem; }
 
 .end-spacer { flex: 0 0 0.1vw; pointer-events: none; }
@@ -406,4 +473,9 @@ watch(showWeather, (on) => {
     padding: 0.75rem;
   }
 }
+
+/* Theming by temp */
+.weather-widget.warm { --accent: #f26c00; }
+.weather-widget.cold { --accent: #1d4ed8; }
+.weather-widget.cold .temp { color: var(--accent); }
 </style>

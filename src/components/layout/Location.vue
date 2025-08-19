@@ -1,7 +1,7 @@
 <template>
 <!-- City Selector -->
 <div class="location-selector" ref="locationRef">
-  <div class="location-button" @click="toggleCityDropdown">
+  <div class="location-button" @click="toggleCityDropdown" role="button" aria-haspopup="listbox" :aria-expanded="showCityDropdown" :aria-label="`Выбрать город: ${selectedCity}`">
   <svg
   xmlns="http://www.w3.org/2000/svg"
   class="location-icon animated-pin"
@@ -112,19 +112,23 @@ onBeforeUnmount(() => {
 }
 
 .location-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  background-color: #e2f6ff;
-  border-radius: 12px;
-  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, #eaf3ff, #e2f6ff);
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
   cursor: pointer;
-  gap: 0.1rem;
-  transition: background-color 0.2s ease;
+  gap: 0.35rem;
+  transition: background-color 0.2s ease, box-shadow .2s ease, transform .15s ease;
+  border: 1px solid #dbeafe;
 }
 
 .location-button:hover {
-  background-color: #dceeff;
+  background-color: #e6f0ff;
+  box-shadow: 0 2px 8px rgba(29,78,216,.12);
 }
+
+.location-button:active { transform: translateY(1px); }
 
 .chevron {
   font-size: 1rem;
@@ -142,6 +146,7 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   padding: 0.5rem 0;
   font-size: 1rem;
+  border: 1px solid #eef2ff;
 }
 
 .search-input {

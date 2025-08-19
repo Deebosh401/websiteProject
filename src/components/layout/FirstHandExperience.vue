@@ -1417,7 +1417,7 @@ const removeStop = (index: number) => {
 
 <style scoped>
 .fhe { padding: 0; }
-.fhe-header{ display:flex; justify-content:space-between; align-items:center; margin:0 5vw .5rem; padding-top:12px; }
+.fhe-header{ display:flex; justify-content:space-between; align-items:center; margin:0 5vw .5rem; padding-top:0.5rem; }
 .fhe-header h2{ font-size:clamp(1.2rem,3.5vw,1.5rem); font-weight:800; margin:0 }
 .link{ background:transparent; border:none; color:rgb(26,58,107); font-weight:600; padding:6px 10px; border-radius:10px; cursor:pointer; }
 .link:hover{ background:rgba(255,218,185,.3); color:#00b4d8 }
@@ -1926,8 +1926,6 @@ const removeStop = (index: number) => {
   animation: appleVibrate 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
   filter: drop-shadow(0 8px 20px rgba(0,0,0,0.7));
 }
-
-/* Enhanced pulsation effect */
 @keyframes applePulsate {
   0%, 100% { transform: scale(1); opacity: 1; }
   25% { transform: scale(1.3); opacity: 0.8; }

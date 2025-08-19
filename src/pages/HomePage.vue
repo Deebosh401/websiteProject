@@ -62,11 +62,21 @@
 </div>
     <div id="weather"><WeatherApp /></div>
     <div id="guides"><Guides /></div>
-    <div id="slang"><SlangJokes /></div>
+    <div id="slang"><SlangJokes @modal-toggle="setModalState" /></div>
+    <div class="map-trigger-wrap">
+      <button class="open-map-btn" @click="openExplorer" aria-haspopup="dialog" aria-controls="city-explorer">Открыть карту</button>
+    </div>
+    <CityExplorerMap v-if="showExplorer" id="city-explorer" :noHeader="true" @close="closeExplorer" />
     <div id="firsthand"><FirstHandExperience /></div>
     <div id="map"></div>
 
-    <button v-if="showTopButton" class="back-to-top" @click="scrollToTop">
+    <button
+      v-if="showTopButton && !anyModalOpen && !showExplorer"
+      class="back-to-top"
+      @click="scrollToTop"
+      @touchend.prevent.stop="scrollToTop"
+      aria-label="Наверх"
+    >
       <span class="arrow-icon"></span>
     </button>
   </div>
@@ -74,17 +84,26 @@
 
 <script setup>
 import Categories from "../components/layout/Categories.vue"
-import Popular from "../components/layout/Popular.vue";
 import Guides from "../components/layout/Guides.vue";
 import SlangJokes from "../components/layout/SlangJokes.vue";
 import FirstHandExperience from "../components/layout/FirstHandExperience.vue";
 import Map from "../components/layout/Map.vue";
+import { defineAsyncComponent } from 'vue'
+const CityExplorerMap = defineAsyncComponent(() => import('../components/layout/CityExplorerMap.vue'))
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { citiesData, categoriesCarouselData,allAttractions } from "../Data";
 import { useRouter } from "vue-router";
 
 const router = useRouter()
 const showTopButton = ref(false)
+const showExplorer = ref(false)
+const openExplorer = () => { showExplorer.value = true }
+const closeExplorer = () => { showExplorer.value = false }
+const anyModalOpen = ref(false)
+const setModalState = (open) => { anyModalOpen.value = open }
+const handleFullscreenChange = () => {
+  anyModalOpen.value = !!document.fullscreenElement || anyModalOpen.value
+}
 
 const scrollTo = (id) => {
   const el = document.getElementById(id)
@@ -161,10 +180,17 @@ const checkScroll = () => {
 
 onMounted(() => {
   window.addEventListener('scroll', checkScroll)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  // Safari WebKit prefix (best-effort; TS ignore for vendor event)
+  // @ts-ignore
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', checkScroll)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  // @ts-ignore
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
 })
 
 </script>
@@ -272,7 +298,8 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
   transition: transform 0.2s ease, box-shadow 0.3s ease, opacity 0.3s ease;
   opacity: 0.65;
-  z-index: 999;
+  z-index: 2147483647; /* ensure it's above overlays */
+  pointer-events: auto;
 }
 
 .back-to-top:hover {
@@ -281,6 +308,23 @@ onUnmounted(() => {
   opacity: 1;
   background: linear-gradient(145deg, rgba(255, 140, 0, 0.879),rgba(195, 116, 19, 0.751),rgba(151, 95, 26, 0.551));
 }
+
+.map-trigger-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+}
+.open-map-btn {
+  background: rgba(225,245,254,255);
+  color: #111;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+  padding: 0.6rem 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+.open-map-btn:hover { background: #c7d2fe; }
 
 .arrow-icon::after {
   content: '';

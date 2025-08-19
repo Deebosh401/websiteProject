@@ -35,6 +35,24 @@ export interface Attraction {
   placeType?: PlaceType
   canReserve?: boolean
   city:string
+  // Extended fields for richer filtering across categories (all optional)
+  stars?: number // hotels
+  amenities?: string[] // wifi, parking, breakfast, pool, spa
+  kidFriendly?: boolean
+  dogFriendly?: boolean
+  indoor?: boolean
+  outdoor?: boolean
+  genre?: string // concerts/theaters/cinema
+  period?: string // historical period
+  district?: string // city district
+  distanceKm?: number // from center or reference point
+  ticketPrice?: number
+  freeDay?: boolean
+  difficulty?: 'легкий' | 'средний' | 'сложный'
+  minAge?: number
+  gearIncluded?: boolean
+  startTime?: string
+  endTime?: string
 }
 
 export interface Review {

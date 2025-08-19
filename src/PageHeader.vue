@@ -1,5 +1,5 @@
 <template>
-  <header class="mobile-header">
+  <header class="mobile-header" :class="{ scrolled }">
     <!-- Logo -->
     <PageLogo />
     <Location />
@@ -10,8 +10,11 @@
     </div>
 
     <!-- Dropdown Menu -->
+    <button class="lang-toggle" @click="toggleLang" :aria-label="`Change language, current: ${lang.toUpperCase()}`">
+      {{ lang.toUpperCase() }}
+    </button>
     <div class="menu-wrapper" ref="menuWrapper">
-      <button @click="toggleMenu" ref="menuButton" class="avatar-button" aria-label="Открыть меню пользователя">
+      <button @click="toggleMenu" ref="menuButton" class="avatar-button" aria-label="Открыть меню пользователя" aria-haspopup="menu" :aria-expanded="showMenu">
         <img src="/default-avatar.png" alt="User Avatar" class="avatar-icon" />
     </button>
 
@@ -32,6 +35,17 @@ import Location from './components/layout/Location.vue'
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const showMenu = ref(false)
+const scrolled = ref(false)
+const lang = ref(localStorage.getItem('lang') || 'ru')
+
+function onScroll() {
+  scrolled.value = window.scrollY > 6
+}
+
+function toggleLang() {
+  lang.value = lang.value === 'ru' ? 'en' : 'ru'
+  localStorage.setItem('lang', lang.value)
+}
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
@@ -95,10 +109,12 @@ function handleOutsideClick(event) {
 
 onMounted(() => {
   document.addEventListener('click', handleOutsideClick)
+  window.addEventListener('scroll', onScroll, { passive: true })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleOutsideClick)
+  window.removeEventListener('scroll', onScroll)
 })
 </script>
 
@@ -107,16 +123,25 @@ onBeforeUnmount(() => {
   position: fixed;
   left: 0;
   right: 0;
+  top: 0;
   z-index: 9999;
-  background-color: #fff;
-  padding: 0rem rem;
-  box-shadow: 0 7px 10px rgba(0, 0, 0, 0.05);
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: saturate(120%) blur(8px);
+  padding: 0;
+  box-shadow: 0 0 0 rgba(0,0,0,0);
   height: 77px; 
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  
+  transition: box-shadow .2s ease, background .2s ease;
 }
+.mobile-header.scrolled {
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+}
+
+.logo-link { display:inline-flex; align-items:center; cursor:pointer; }
+.logo-link:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; border-radius: 8px; }
 
 /* Logo */
 .mobile-header .logo {
@@ -134,14 +159,27 @@ onBeforeUnmount(() => {
   position: relative;
 }
 
+.lang-toggle {
+  height: 36px;
+  min-width: 44px;
+  padding: 5px;
+  margin-right: 3px;
+  margin-left: 3px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .avatar-button {
   background-color: transparent;
   border: none;
   cursor: pointer;
-  width: 44px;
-  height: 44px;
+  width: 50px;
+  height: 50px;
   padding: 0;
-  margin: 0 0.75rem;
+  margin: 0 ;
   border-radius: 50%;
   overflow: hidden;
   position: relative;

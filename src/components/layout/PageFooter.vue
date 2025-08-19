@@ -28,7 +28,7 @@
           </ul>
         </div>
       </div>
-      <img src="/logo.jpeg" alt="Traveltis Logo" class="logo" />
+      <img :src="logoSrc" alt="Traveltis Logo" class="logo" />
     </div>
 
     <div class="footer-bottom">
@@ -36,6 +36,10 @@
     </div>
   </footer>
 </template>
+
+<script setup>
+const logoSrc = '/logo.png'
+</script>
 
 <style scoped>
 .footer {
@@ -56,7 +60,7 @@
 .logo {
   width: 18%;
   height: auto;
-  background-color: rgba(255, 255, 255, 0.34); 
+  background-color: rgb(255, 255, 255); 
   border-radius: 12px;
 }
 
