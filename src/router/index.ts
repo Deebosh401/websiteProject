@@ -18,11 +18,7 @@ const routes = [
       { path: '/guides', name: 'guides', component: () => import('../pages/GuidesPage.vue') },
     ]
   },
-  // Catch-all route for 404s - redirect to home
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/'
-  }
+
 ]
 
 const router = createRouter({
