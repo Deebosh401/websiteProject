@@ -17,8 +17,7 @@ const routes = [
       { path: '/all-popular', name: 'all-popular', component: () => import('../pages/AllPopularPage.vue') },
       { path: '/guides', name: 'guides', component: () => import('../pages/GuidesPage.vue') },
     ]
-  },
-
+  }
 ]
 
 const router = createRouter({
@@ -27,6 +26,12 @@ const router = createRouter({
   scrollBehavior() {
     return { top: 0 }
   }
+})
+
+// Add global navigation guards for debugging
+router.beforeEach((to, from, next) => {
+  console.log('Route navigation:', { from: from.path, to: to.path, params: to.params })
+  next()
 })
 
 export default router
