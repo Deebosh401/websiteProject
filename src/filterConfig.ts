@@ -5,152 +5,104 @@ export interface FilterConfig {
 
 export const filterOptions: FilterConfig = {
   'Экскурсии': {
-    priceRange: { label: 'Цена', type: 'range', min: 0, max: 10000, step: 100 },
-    excursionType: { label: 'Тип экскурсии', type: 'single', options: ['турфирма', 'мини группа'] },
-    transportType: { label: 'Тип передвижения', type: 'single', options: ['автобус', 'индивидуально', 'пешком', 'прочее'] },
-    duration: { label: 'Длительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч', 'весь день'] },
-    accessible: { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
-    familyFriendly: { label: 'Семейные', type: 'single', options: ['да', 'нет'] },
-    season: { label: 'Сезон', type: 'single', options: ['лето', 'зима', 'только хорошая погода'] },
-    difficulty: { label: 'Сложность', type: 'single', options: ['легкий', 'средний', 'сложный'] },
+    'Ценовой диапазон': { label: 'Цена за человека', type: 'range', min: 0, max: 10000, step: 100 },
+    'Тип экскурсии': { label: 'Тип экскурсии', type: 'single', options: ['турфирма', 'мини группа'] },
+    'Тип транспорта': { label: 'Тип передвижения', type: 'single', options: ['автобус', 'индивидуально', 'пешком', 'прочее'] },
+    'Продолжительность': { label: 'Продолжительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч', 'весь день'] },
+    'Доступность': { label: 'Доступность для людей с ограниченными возможностями', type: 'single', options: ['да', 'нет'] },
+    'Сезон': { label: 'Сезон', type: 'single', options: ['лето', 'зима', 'только хорошая погода'] },
   },
-  'Где поесть': {
-    cuisine: {
-      label: 'Тип кухни',
-      type: 'multi',
-      options: [
-        'балтийская',
-        'европейская',
-        'американская',
-        'вегетарианская/веганская',
-        'фастфуд',
-        'морепродукты',
-        'стейк-хаус',
-        'азиатская',
-      ],
-    },
-    priceLevel: {
-      label: 'Средний чек',
-      type: 'single',
-      options: ['300-800', '800-1500', '2500+'],
-    },
-    openHours: {
-      label: 'Время работы',
-      type: 'time',
-    },
-    placeType: {
-      label: 'Тип заведения',
-      type: 'single',
-      options: [
-        'ресторан',
-        'кафе',
-        'бар/паб',
-        'кофейня',
-        'кондитерская',
-        'фастфуд',
-        'пиццерия',
-        'стейк-хаус',
-        'уличная еда',
-        'булочная',
-      ],
-    },
-    canReserve: {
-      label: 'Бронирование',
-      type: 'single',
-      options: ['да', 'нет'],
-    },
-  },
-
   'Размещение': {
-    stars: { label: 'Звезды', type: 'single', options: ['5★', '4★', '3★', '2★', '1★'] },
-    priceRange: { label: 'Цена за ночь', type: 'range', min: 0, max: 20000, step: 500 },
-    amenities: { label: 'Удобства', type: 'multi', options: ['Wi‑Fi', 'Парковка', 'Завтрак', 'Бассейн', 'SPA', 'Прачечная', 'Кухня'] },
-    familyFriendly: { label: 'Семейные', type: 'single', options: ['да', 'нет'] },
-    dogFriendly: { label: 'С животными', type: 'single', options: ['да', 'нет'] },
+    'Звезды': { label: 'Звезды', type: 'single', options: ['5★', '4★', '3★', '2★', '1★'] },
+    'Ценовой диапазон': { label: 'Цена за ночь', type: 'range', min: 0, max: 20000, step: 500 },
+    'Удобства': { label: 'Удобства', type: 'multi', options: ['Wi‑Fi', 'Парковка', 'Завтрак', 'Бассейн', 'SPA', 'Прачечная', 'Кухня'] },
+    'Семейные': { label: 'Семейные', type: 'single', options: ['да', 'нет'] },
+    'С животными': { label: 'С животными', type: 'single', options: ['да', 'нет'] },
   },
 
   'Исторические места': {
-    period: { label: 'Период', type: 'single', options: ['XIX', 'XX', 'Средневековье', 'Советское'] },
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 2000, step: 50 },
-    freeDay: { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
-    accessible: { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
+    'Период': { label: 'Период', type: 'single', options: ['XIX', 'XX', 'Средневековье', 'Советское'] },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 2000, step: 50 },
+    'Бесплатные дни': { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
+    'Доступность': { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
   },
 
   'Активный отдых': {
-    difficulty: { label: 'Сложность', type: 'single', options: ['легкий', 'средний', 'сложный'] },
-    duration: { label: 'Длительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч', 'весь день'] },
-    gearIncluded: { label: 'Снаряжение включено', type: 'single', options: ['да', 'нет'] },
-    indoorOutdoor: { label: 'Формат', type: 'single', options: ['indoor', 'outdoor'] },
-    minAge: { label: 'Мин. возраст', type: 'range', min: 0, max: 21, step: 1 },
+    'Сложность': { label: 'Сложность', type: 'single', options: ['легкий', 'средний', 'сложный'] },
+    'Длительность': { label: 'Длительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч', 'весь день'] },
+    'Снаряжение включено': { label: 'Снаряжение включено', type: 'single', options: ['да', 'нет'] },
+    'Формат': { label: 'Формат', type: 'single', options: ['в помещении', 'на улице'] },
+    'Мин возраст': { label: 'Мин. возраст', type: 'range', min: 0, max: 21, step: 1 },
   },
 
   'Музеи': {
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 1500, step: 50 },
-    freeDay: { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
-    openHours: { label: 'Время работы', type: 'time' },
-    accessible: { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 1500, step: 50 },
+    'Бесплатные дни': { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
+    'Время работы': { label: 'Время работы', type: 'timeRange' },
+    'Доступность': { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
   },
 
   'Концерты': {
-    genre: { label: 'Жанр', type: 'single', options: ['рок', 'поп', 'джаз', 'классика', 'электронная'] },
-    startTime: { label: 'Время начала', type: 'time' },
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 5000, step: 100 },
+    'Жанр': { label: 'Жанр', type: 'single', options: ['рок', 'поп', 'джаз', 'классика', 'электронная'] },
+    'Время начала': { label: 'Время начала', type: 'time' },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 5000, step: 100 },
   },
 
   'Театры': {
-    genre: { label: 'Жанр', type: 'single', options: ['драма', 'комедия', 'балет', 'опера', 'детский'] },
-    startTime: { label: 'Время начала', type: 'time' },
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 7000, step: 100 },
-    accessible: { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
+    'Жанр': { label: 'Жанр', type: 'single', options: ['драма', 'комедия', 'балет', 'опера', 'детский'] },
+    'Время начала': { label: 'Время начала', type: 'time' },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 7000, step: 100 },
+    'Доступность': { label: 'Доступность', type: 'single', options: ['да', 'нет'] },
   },
 
   'Кино': {
-    genre: { label: 'Жанр', type: 'single', options: ['боевик', 'комедия', 'драма', 'семейный', 'ужасы'] },
-    startTime: { label: 'Сеанс', type: 'time' },
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 1500, step: 50 },
+    'Жанр': { label: 'Жанр', type: 'single', options: ['боевик', 'комедия', 'драма', 'семейный', 'ужасы'] },
+    'Время сеанса': { label: 'Сеанс', type: 'time' },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 1500, step: 50 },
   },
 
   'Мастер-классы': {
-    difficulty: { label: 'Сложность', type: 'single', options: ['легкий', 'средний', 'сложный'] },
-    duration: { label: 'Длительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч'] },
-    gearIncluded: { label: 'Материалы включены', type: 'single', options: ['да', 'нет'] },
-    minAge: { label: 'Мин. возраст', type: 'range', min: 0, max: 21, step: 1 },
+    'Сложность': { label: 'Сложность', type: 'single', options: ['легкий', 'средний', 'сложный'] },
+    'Длительность': { label: 'Длительность', type: 'single', options: ['1-3ч', '3-5ч', '5-8ч'] },
+    'Материалы включены': { label: 'Материалы включены', type: 'single', options: ['да', 'нет'] },
+    'Мин возраст': { label: 'Мин. возраст', type: 'range', min: 0, max: 21, step: 1 },
   },
 
   'Парки/cкверы': {
-    amenities: { label: 'Инфраструктура', type: 'multi', options: ['детская площадка', 'аллеи', 'озеро', 'скейт-парк', 'кафе', 'туалет'] },
-    indoorOutdoor: { label: 'Формат', type: 'single', options: ['outdoor'] },
-    dogFriendly: { label: 'С собаками', type: 'single', options: ['да', 'нет'] },
+    'Инфраструктура': { label: 'Инфраструктура', type: 'multi', options: ['детская площадка', 'аллеи', 'озеро', 'скейт-парк', 'кафе', 'туалет'] },
+    'Формат': { label: 'Формат', type: 'single', options: ['на улице'] },
+    'С собаками': { label: 'С собаками', type: 'single', options: ['да', 'нет'] },
   },
 
   'Семейный выход': {
-    kidFriendly: { label: 'Дети', type: 'single', options: ['да', 'нет'] },
-    priceRange: { label: 'Бюджет', type: 'range', min: 0, max: 10000, step: 100 },
-    indoorOutdoor: { label: 'Формат', type: 'single', options: ['indoor', 'outdoor'] },
+    'Для детей': { label: 'Дети', type: 'single', options: ['да', 'нет'] },
+    'Бюджет': { label: 'Бюджет', type: 'range', min: 0, max: 10000, step: 100 },
+    'Формат': { label: 'Формат', type: 'single', options: ['в помещении', 'на улице'] },
   },
 
   'Отпускной транспорт': {
-    transportType: { label: 'Тип', type: 'single', options: ['автобус', 'индивидуально', 'прочее'] },
-    priceRange: { label: 'Стоимость', type: 'range', min: 0, max: 20000, step: 200 },
+    'Тип транспорта': { label: 'Тип', type: 'single', options: ['автобус', 'индивидуально', 'прочее'] },
+    'Стоимость': { label: 'Стоимость', type: 'range', min: 0, max: 20000, step: 200 },
   },
 
   'Выставки': {
-    genre: { label: 'Тематика', type: 'single', options: ['искусство', 'фото', 'наука', 'история', 'техника'] },
-    ticketPrice: { label: 'Билет', type: 'range', min: 0, max: 3000, step: 50 },
-    freeDay: { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
+    'Тематика': { label: 'Тематика', type: 'single', options: ['искусство', 'фото', 'наука', 'история', 'техника'] },
+    'Цена билета': { label: 'Билет', type: 'range', min: 0, max: 3000, step: 50 },
+    'Бесплатные дни': { label: 'Бесплатные дни', type: 'single', options: ['да', 'нет'] },
   },
 
   'Где поесть': {
-    cuisine: {
+    'Кухня': {
       label: 'Тип кухни',
       type: 'multi',
       options: [
         'балтийская','европейская','американская','вегетарианская/веганская','фастфуд','морепродукты','стейк-хаус','азиатская'
       ],
     },
-    priceRange: { label: 'Средний чек', type: 'range', min: 0, max: 6000, step: 100 },
-    placeType: { label: 'Тип', type: 'single', options: ['ресторан','кафе','бар/паб','кофейня','фастфуд','пиццерия','стейк-хаус'] },
-    openHours: { label: 'Время работы', type: 'time' },
-    canReserve: { label: 'Бронирование', type: 'single', options: ['да','нет'] },
+    'Средний чек': { label: 'Средний чек', type: 'single', options: ['300-800', '800-1500', '1500-2500', '2500+'] },
+    'Тип заведения': { label: 'Тип заведения', type: 'single', options: ['ресторан','кафе','бар/паб','кофейня','кондитерская','фастфуд','пиццерия','уличная еда'] },
+    'Завтраки': { label: 'Завтраки', type: 'single', options: ['да','нет'] },
+    'Бронирование': { label: 'Бронирование столиков', type: 'single', options: ['да','нет'] },
+    'Открыто сейчас': { label: 'Открыто сейчас', type: 'single', options: ['да','нет'] },
   },
 }

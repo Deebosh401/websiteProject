@@ -307,7 +307,7 @@ function closeModal() { activeGuide.value = null }
 function toggleFavorite(g: Guide) {
   favorites.value.has(g.id) ? favorites.value.delete(g.id) : favorites.value.add(g.id)
 }
-function goToAllGuides() { router.push({ name: 'all-guides' }).catch(() => {}) }
+function goToAllGuides() { router.push({ name: 'guides' }).catch(() => {}) }
 function goToGuide(g: Guide) { showDetails(g) }
 function book(g: Guide) { alert(`Забронировать ${g.name} — скоро подключим бронирование 🙂`) }
 </script>

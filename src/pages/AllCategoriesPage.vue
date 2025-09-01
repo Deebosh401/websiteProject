@@ -130,20 +130,24 @@ onUnmounted(() => {
 }
 
 .back-btn {
-  background: linear-gradient(135deg, #e2f6ff, #e2f6ff);
-  color: black;
-  border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
+  position: fixed;
+  bottom: 1.2rem;
+  right: 1.2rem;
+  background: rgba(255, 255, 255, 0.8);
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: background 0.3s ease;
+  z-index: 10;
 }
 
 .back-btn:hover {
-  background: linear-gradient(135deg, #00bcd4, #2563eb);
-  transform: scale(1.05);
+  border-color: #aaa;
 }
 
 .cities-scroll-container {

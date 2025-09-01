@@ -60,9 +60,9 @@
         </select>
         <select v-model="fDifficulty" class="f-select">
           <option value="">Сложность</option>
-          <option value="easy">Лёгкий</option>
-          <option value="moderate">Средний</option>
-          <option value="hard">Сложный</option>
+                          <option value="лёгкий">Лёгкий</option>
+                <option value="средний">Средний</option>
+                <option value="сложный">Сложный</option>
         </select>
       </div>
 
@@ -125,6 +125,15 @@
             <span><Icon icon="mdi:clock-outline" /> {{ t.duration }}ч</span>
             <span><Icon icon="mdi:map-marker-distance" /> {{ t.distance }}км</span>
             <span class="rate" :title="ratingTitle(t)">⭐ {{ t.ratings.overall.toFixed(1) }}</span>
+              <span v-if="t.costs" class="costs-display" :title="getCostsTitle(t.costs)">
+                <span v-if="!t.costs || t.costs.amount === 'Бесплатно'">🆓</span>
+                <span v-else>💰</span>
+              </span>
+            <span v-if="t.payment" class="payment" :title="getPaymentTitle(t.payment)">
+                <span v-if="t.payment.cash && t.payment.card">💵💳</span>
+              <span v-else-if="t.payment.cash">💵</span>
+              <span v-else-if="t.payment.card">💳</span>
+            </span>
           </div>
 
           <div class="facilities">
@@ -132,6 +141,13 @@
             <span v-if="t.facilities.rest" title="Место отдыха"><Icon icon="mdi:bench" /></span>
             <span v-if="t.facilities.playground" title="Детская площадка"><Icon icon="mdi:castle" /></span>
             <span v-if="t.facilities.accessible" title="Доступность"><Icon icon="mdi:wheelchair-accessibility" /></span>
+            <span v-if="t.facilities.parking" title="Парковка"><Icon icon="mdi:car" /></span>
+            <span v-if="t.facilities.wifi" title="Wi-Fi"><Icon icon="mdi:wifi" /></span>
+            <span v-if="t.facilities.cafe" title="Кафе"><Icon icon="mdi:coffee" /></span>
+            <span v-if="t.facilities.water" title="Питьевая вода"><Icon icon="mdi:water" /></span>
+            <span v-if="t.facilities.shelter" title="Укрытие"><Icon icon="mdi:umbrella" /></span>
+            <span v-if="t.facilities.lighting" title="Освещение"><Icon icon="mdi:lightbulb" /></span>
+            <span v-if="t.facilities.security" title="Охрана"><Icon icon="mdi:shield" /></span>
           </div>
 
           <div class="tags">
@@ -402,69 +418,489 @@
     </div>
 
     <!-- Create Modal -->
-    <div class="modal" v-if="showCreate" @click.self="showCreate=false">
-      <div class="panel">
-        <h3>🧭 Новый маршрут</h3>
-        <input v-model="form.title" placeholder="* Название" />
-        <div class="row2">
-          <input v-model.number="form.duration" type="number" min="0" placeholder="* Часы (напр. 3)" />
-          <input v-model.number="form.distance" type="number" min="0" step="0.1" placeholder="* Км (напр. 5.5)" />
+    <div class="modal" v-if="showCreate" @click.self="showCreate=false" @keydown.esc="showCreate=false">
+      <div class="create-panel">
+        <!-- Header -->
+        <div class="create-header">
+          <h3>🧭 Создать новый маршрут</h3>
+          <button class="close-btn" @click="showCreate=false">
+            <Icon icon="mdi:close" />
+          </button>
         </div>
-        <select v-model="form.difficulty">
-          <option disabled value="">* Сложность</option>
-          <option value="easy">Лёгкий</option>
-          <option value="moderate">Средний</option>
-          <option value="hard">Сложный</option>
-        </select>
 
-        <textarea v-model="form.summary" placeholder="Краткое описание…"></textarea>
-        
-        <!-- Map for adding stops -->
-        <div class="stops-section">
-          <h4>📍 Остановки</h4>
+        <!-- Progress indicator -->
+        <div class="create-progress">
+          <div class="progress-step" :class="{ active: currentStep >= 1 }">
+            <div class="step-number">1</div>
+            <span>Основная информация</span>
+          </div>
+          <div class="progress-step" :class="{ active: currentStep >= 2 }">
+            <div class="step-number">2</div>
+            <span>Остановки</span>
+          </div>
+          <div class="progress-step" :class="{ active: currentStep >= 3 }">
+            <div class="step-number">3</div>
+            <span>Удобства</span>
+          </div>
+          <div class="progress-step" :class="{ active: currentStep >= 4 }">
+            <div class="step-number">4</div>
+            <span>Медиа</span>
+          </div>
+        </div>
+
+        <!-- Step 1: Basic Info -->
+        <div v-if="currentStep === 1" class="create-step">
+          <div class="form-section">
+            <h4>📝 Основная информация</h4>
+            
+            <div class="form-group">
+              <label>Название маршрута *</label>
+              <input 
+                v-model="form.title" 
+                placeholder="Например: Прогулка по историческому центру" 
+                class="form-input"
+                :class="{ 'error': !form.title && currentStep === 1 }"
+              />
+              <div v-if="!form.title && currentStep === 1" class="error-message">
+                Введите название маршрута
+              </div>
+            </div>
+
+                          <div class="form-row">
+                <div class="form-group">
+                  <label>Длительность (часы) *</label>
+                  <input 
+                    v-model="form.duration" 
+                    type="number" 
+                    min="0" 
+                    step="0.5"
+                    placeholder="3" 
+                    class="form-input"
+                    :class="{ 'error': !form.duration && currentStep === 1 }"
+                  />
+                  <div v-if="!form.duration && currentStep === 1" class="error-message">
+                    Введите длительность
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Расстояние (км) *</label>
+                  <input 
+                    v-model="form.distance" 
+                    type="number" 
+                    min="0" 
+                    step="0.1"
+                    placeholder="5.5" 
+                    class="form-input"
+                    :class="{ 'error': !form.distance && currentStep === 1 }"
+                  />
+                  <div v-if="!form.distance && currentStep === 1" class="error-message">
+                    Введите расстояние
+                  </div>
+                </div>
+              </div>
+
+            <div class="form-group">
+              <label>Сложность *</label>
+              <div class="difficulty-selector">
+                <button 
+                  v-for="diff in ['лёгкий', 'средний', 'сложный'] as const" 
+                  :key="diff"
+                  class="difficulty-btn"
+                  :class="{ active: form.difficulty === diff }"
+                  @click="form.difficulty = diff"
+                >
+                  <Icon :icon="getDifficultyIcon(diff)" />
+                  <span>{{ diffLabel(diff) }}</span>
+                </button>
+              </div>
+              <div v-if="!form.difficulty && currentStep === 1" class="error-message">
+                Выберите сложность маршрута
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Краткое описание</label>
+              <textarea 
+                v-model="form.summary" 
+                placeholder="Расскажите о маршруте..." 
+                class="form-textarea"
+                rows="3"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Теги</label>
+              <div class="tags-input-container">
+                <input 
+                  v-model="tagInput" 
+                  @keydown.enter.prevent="addTag" 
+                  @focus="showTagSuggestions = true"
+                  @blur="handleTagInputBlur"
+                  placeholder="Введите тег и нажмите Enter" 
+                  class="form-input"
+                />
+                <div v-if="showTagSuggestions && tagInput.trim() === ''" class="tags-suggestions">
+                  <div class="suggestions-header">Популярные теги:</div>
+                  <span 
+                    v-for="suggestion in tagSuggestions" 
+                    :key="suggestion"
+                    class="tag-suggestion"
+                    @click="addTagFromSuggestion(suggestion)"
+                  >
+                    #{{ suggestion }}
+                  </span>
+                </div>
+                <div v-if="showTagSuggestions && tagInput.trim() !== ''" class="tags-suggestions">
+                  <div class="suggestions-header">Добавить тег:</div>
+                  <span 
+                    class="tag-suggestion add-custom"
+                    @click="addTag"
+                  >
+                    #{{ tagInput.trim() }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="form.tags.length > 0" class="tags-display">
+                <span 
+                  v-for="(tag, i) in form.tags" 
+                  :key="tag" 
+                  class="tag-chip"
+                  @click="removeTag(i)"
+                >
+                  #{{ tag }} <Icon icon="mdi:close" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Stops -->
+        <div v-if="currentStep === 2" class="create-step">
+          <div class="form-section">
+            <h4>📍 Остановки маршрута</h4>
+            <p class="section-description">Добавьте ключевые точки вашего маршрута</p>
+            
           <div class="stops-map-container">
+              <div class="map-instructions">
+                <Icon icon="mdi:map-marker" />
+                <span>Кликните на карту, чтобы добавить остановки</span>
+                <div class="city-info">
+                  <Icon icon="mdi:map-marker-city" />
+                  <span>Город: {{ selectedCity }}</span>
+                </div>
+              </div>
             <div ref="createMapEl" class="create-map-frame"></div>
+              
             <div class="map-controls">
-              <button class="btn small" @click="addStopFromMap">
+                <button class="map-btn-small" @click="addStopFromMap">
                 <Icon icon="mdi:map-marker-plus" />
-                Добавить остановку
+                  Добавить в центре
               </button>
             </div>
           </div>
-          <div class="stops-list">
-            <div v-for="(stop, index) in form.stops" :key="index" class="stop-item">
-              <span class="stop-number">{{ index + 1 }}</span>
-              <div class="stop-info">
-                <input v-model="stop.title" placeholder="Название остановки" />
-                <input v-model="stop.note" placeholder="Описание (необязательно)" />
+            
+            <!-- Route Info Panel - Below Map -->
+            <div v-if="routeInfoData.show" class="route-info-below">
+              <div class="route-info-header">
+                <h4>Статистика маршрута</h4>
               </div>
-              <button class="remove-stop" @click="removeStop(index)">×</button>
+              <div class="route-stats">
+                <div class="route-stat">
+                  <div class="stat-content">
+                    <div class="stat-icon">🚶</div>
+                    <div class="stat-details">
+                      <div class="stat-value">{{ routeInfoData.distance }}{{ routeInfoData.distance !== 'Расчет...' ? ' км' : '' }}</div>
+                      <div class="stat-label">Расстояние пешком</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="route-stat">
+                  <div class="stat-content">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-details">
+                                              <div class="stat-value">{{ routeInfoData.duration }}</div>
+                      <div class="stat-label">Время в пути</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="route-stat">
+                  <div class="stat-content">
+                    <div class="stat-icon">📍</div>
+                    <div class="stat-details">
+                      <div class="stat-value">{{ form.stops.length }}</div>
+                      <div class="stat-label">Остановок</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          <div class="stops-list">
+              <div v-if="form.stops.length === 0" class="empty-stops">
+                <Icon icon="mdi:map-marker-off" />
+                <p>Нет остановок</p>
+                <span>Нажмите на карту или кнопку выше, чтобы добавить остановки</span>
+              </div>
+            <div v-for="(stop, index) in form.stops" :key="index" class="stop-item">
+                <div class="stop-header">
+              <span class="stop-number">{{ index + 1 }}</span>
+                  <button class="remove-stop" @click="removeStop(index)">
+                    <Icon icon="mdi:delete" />
+                  </button>
+              </div>
+                <div class="stop-content">
+                  <input 
+                    v-model="stop.title" 
+                    placeholder="Название остановки" 
+                    class="stop-title-input"
+                  />
+                  <textarea 
+                    v-model="stop.note" 
+                    placeholder="Описание (необязательно)" 
+                    class="stop-note-input"
+                    rows="2"
+                  ></textarea>
+                  <div class="stop-coordinates">
+                    <span>{{ stop.lat.toFixed(4) }}, {{ stop.lng.toFixed(4) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="row2">
-          <label class="check"><input type="checkbox" v-model="form.facilities.toilets" /> Туалеты</label>
-          <label class="check"><input type="checkbox" v-model="form.facilities.rest" /> Место отдыха</label>
+        <!-- Step 3: Facilities -->
+        <div v-if="currentStep === 3" class="create-step">
+          <div class="form-section">
+            <h4>🏪 Удобства и оплата</h4>
+            <p class="section-description">Укажите доступные удобства и способы оплаты</p>
+            
+            <div class="facilities-grid">
+              <div 
+                v-for="facility in facilitiesList" 
+                :key="facility.key"
+                class="facility-item"
+                :class="{ active: form.facilities[facility.key] }"
+                @click="toggleFormFacility(facility.key)"
+              >
+                <Icon :icon="facility.icon" />
+                <span>{{ facility.label }}</span>
         </div>
-        <div class="row2">
-          <label class="check"><input type="checkbox" v-model="form.facilities.playground" /> Детская площадка</label>
-          <label class="check"><input type="checkbox" v-model="form.facilities.accessible" /> Доступность</label>
         </div>
 
-        <input v-model="tagInput" @keydown.enter.prevent="addTag" placeholder="Теги (Enter)" />
-        <div class="tags-edit">
-          <span class="tag" v-for="(t, i) in form.tags" :key="t" @click="removeTag(i)">#{{ t }} ×</span>
+            <div class="payment-section">
+              <h5>💳 Способы оплаты</h5>
+              <div class="payment-options">
+                <label class="payment-option">
+                  <input type="checkbox" v-model="form.payment.cash" />
+                  <div class="payment-content">
+                    <Icon icon="mdi:cash" />
+                    <span>Наличные</span>
+                  </div>
+                </label>
+                <label class="payment-option">
+                  <input type="checkbox" v-model="form.payment.card" />
+                  <div class="payment-content">
+                    <Icon icon="mdi:credit-card" />
+                    <span>Банковская карта</span>
+                  </div>
+                </label>
+              </div>
         </div>
 
-        <label class="uploader">
-          <input type="file" multiple accept="image/*,video/*" @change="handleUpload" />
-          <Icon icon="mdi:file-upload-outline" /> Медиa (фото/видео)
+            <div class="costs-section">
+              <h5>💰 Затраты</h5>
+              <p class="section-description">Укажите расходы для выбранного типа путешественников</p>
+              
+              <div class="costs-selector">
+                <div class="cost-type-selector">
+                  <label class="cost-label">
+                    <Icon icon="mdi:account-group" />
+                    <span>Тип путешественников</span>
         </label>
+                  <select v-model="form.costs.selectedType" class="cost-type-select">
+                    <option value="">Выберите тип</option>
+                                    <option value="для одного">👤 Для одного</option>
+                <option value="для семьи">👨‍👩‍👧‍👦 Для семьи</option>
+                <option value="для группы">👥 Для группы</option>
+                  </select>
+                </div>
+                
+                <div v-if="form.costs.selectedType" class="cost-input-section">
+                  <label class="cost-label">
+                    <Icon icon="mdi:currency-rub" />
+                    <span>Стоимость для {{ getCostTypeLabel(form.costs.selectedType) }}</span>
+                  </label>
+                  <input 
+                    v-model="form.costs.amount" 
+                    type="text" 
+                    :placeholder="getCostPlaceholder(form.costs.selectedType)"
+                    class="cost-amount-field"
+                  />
+                </div>
+              </div>
+              
+              <div class="costs-notes">
+                <textarea 
+                  v-model="form.costs.notes" 
+                  placeholder="Дополнительная информация о расходах (билеты, входы, экскурсии, и т.д.)"
+                  class="costs-notes-field"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
 
-        <div class="panel-actions">
-          <button class="btn ghost" @click="showCreate=false">Отмена</button>
-          <button class="btn" :disabled="!canCreate" @click="createRoute">Создать</button>
+            <div class="ratings-section">
+              <h5>⭐ Начальные оценки</h5>
+              <p class="section-description">Установите начальные оценки для вашего маршрута</p>
+              
+              <div class="ratings-grid">
+                <div class="rating-item">
+                  <label>Общая оценка</label>
+                  <div class="rating-stars">
+                    <button 
+                      v-for="star in 5" 
+                      :key="star"
+                      class="star-btn"
+                      :class="{ active: form.ratings.overall >= star }"
+                      @click="form.ratings.overall = star"
+                    >
+                      <Icon icon="lucide:star" />
+                    </button>
+                  </div>
+                  <span class="rating-value">{{ form.ratings.overall }}/5</span>
+                </div>
+                
+                <div class="rating-item">
+                  <label>Виды</label>
+                  <div class="rating-stars">
+                    <button 
+                      v-for="star in 5" 
+                      :key="star"
+                      class="star-btn"
+                      :class="{ active: form.ratings.scenery >= star }"
+                      @click="form.ratings.scenery = star"
+                    >
+                      <Icon icon="lucide:star" />
+                    </button>
+                  </div>
+                  <span class="rating-value">{{ form.ratings.scenery }}/5</span>
+                </div>
+                
+                <div class="rating-item">
+                  <label>Доступность</label>
+                  <div class="rating-stars">
+                    <button 
+                      v-for="star in 5" 
+                      :key="star"
+                      class="star-btn"
+                      :class="{ active: form.ratings.access >= star }"
+                      @click="form.ratings.access = star"
+                    >
+                      <Icon icon="lucide:star" />
+                    </button>
+                  </div>
+                  <span class="rating-value">{{ form.ratings.access }}/5</span>
+                </div>
+                
+                <div class="rating-item">
+                  <label>Комфорт</label>
+                  <div class="rating-stars">
+                    <button 
+                      v-for="star in 5" 
+                      :key="star"
+                      class="star-btn"
+                      :class="{ active: form.ratings.comfort >= star }"
+                      @click="form.ratings.comfort = star"
+                    >
+                      <Icon icon="lucide:star" />
+                    </button>
+                  </div>
+                  <span class="rating-value">{{ form.ratings.comfort }}/5</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Media -->
+        <div v-if="currentStep === 4" class="create-step">
+          <div class="form-section">
+            <h4>📸 Медиафайлы</h4>
+            <p class="section-description">Добавьте фото и видео для вашего маршрута</p>
+            
+            <div class="media-upload-area" @click="triggerFileUpload">
+              <input 
+                ref="fileInput" 
+                type="file" 
+                multiple 
+                accept="image/*,video/*" 
+                @change="handleUpload" 
+                class="hidden-input"
+              />
+              <div class="upload-content">
+                <Icon icon="mdi:cloud-upload" />
+                <h5>Загрузить медиафайлы</h5>
+                <p>Перетащите файлы сюда или нажмите для выбора</p>
+                <span>Поддерживаются: JPG, PNG, MP4</span>
+              </div>
+            </div>
+            <div v-if="form.media.length === 0 && currentStep === 4" class="error-message">
+              Загрузите хотя бы одно фото или видео
+            </div>
+
+            <div v-if="form.media.length > 0" class="media-preview">
+              <h5>Загруженные файлы ({{ form.media.length }})</h5>
+              <div class="media-grid">
+                <div 
+                  v-for="(media, index) in form.media" 
+                  :key="index"
+                  class="media-item"
+                >
+                  <template v-if="isVideo(media)">
+                    <video muted loop><source :src="media" type="video/mp4" /></video>
+                  </template>
+                  <template v-else>
+                    <img :src="media" alt="" />
+                  </template>
+                  <button class="remove-media" @click="removeMedia(index)">
+                    <Icon icon="mdi:close" />
+                  </button>
+                  <div v-if="index === 0" class="cover-badge">Обложка</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="create-navigation">
+          <button 
+            v-if="currentStep > 1" 
+            class="nav-btn secondary" 
+            @click="currentStep--"
+          >
+            <Icon icon="mdi:chevron-left" />
+            Назад
+          </button>
+          <button 
+            v-if="currentStep < 4" 
+            class="nav-btn primary" 
+            @click="currentStep++"
+            :disabled="!canProceed"
+          >
+            Далее
+            <Icon icon="mdi:chevron-right" />
+          </button>
+          <button 
+            v-if="currentStep === 4" 
+            class="nav-btn primary" 
+            @click="createRoute"
+            :disabled="!canCreate"
+          >
+            <Icon icon="mdi:check" />
+            Создать маршрут
+          </button>
         </div>
       </div>
     </div>
@@ -472,50 +908,104 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import maplibregl, { Map, Marker, LngLatBounds } from 'maplibre-gl'
 import type { LngLatLike, GeoJSONSource,StyleSpecification } from 'maplibre-gl'
 import type { LineString, Feature } from 'geojson'
+import { allTrails, type Trail } from '../../Data'
 
 // -------------------- Types --------------------
-type Difficulty = 'easy' | 'moderate' | 'hard'
-type Ratings = { overall: number; scenery: number; access: number; comfort: number }
-type Comment = { user: { name: string; avatar: string }, text: string, date: string, media?: string[] }
+type Difficulty = 'лёгкий' | 'средний' | 'сложный'
 type Stop = { title: string; note?: string; lat: number; lng: number }
-type Trail = {
-  id: number
-  title: string
-  cover: string
-  media: string[]
-  duration: number     // hours
-  distance: number     // km
-  difficulty: Difficulty
-  tags: string[]
-  facilities: { toilets: boolean; rest: boolean; playground: boolean; accessible: boolean }
-  ratings: Ratings
-  stops: Stop[]
-  comments: Comment[]
-  owner: { name: string; avatar: string }
-  featured?: boolean
-}
 
 // -------------------- Utils --------------------
 const isVideo = (src: string) => src.toLowerCase().endsWith('.mp4')
-const diffLabel = (d: Difficulty) => d === 'easy' ? 'Лёгкий' : d === 'moderate' ? 'Средний' : 'Сложный'
+const diffLabel = (d: Difficulty) => d === 'лёгкий' ? 'Лёгкий' : d === 'средний' ? 'Средний' : 'Сложный'
 const ratingTitle = (t: Trail) =>
   `Виды: ${t.ratings.scenery.toFixed(1)} • Доступность: ${t.ratings.access.toFixed(1)} • Комфорт: ${t.ratings.comfort.toFixed(1)}`
+const getPaymentTitle = (payment: { cash: boolean; card: boolean }) => {
+  if (payment.cash && payment.card) return 'Наличные и карта'
+  if (payment.cash) return 'Только наличные'
+  if (payment.card) return 'Только карта'
+  return 'Оплата не указана'
+}
+
+const getCostsTitle = (costs: { selectedType: string; amount: string; notes: string }) => {
+  if (!costs.selectedType || !costs.amount) return 'Бесплатно'
+  
+  const typeLabel = getCostTypeLabel(costs.selectedType)
+  const parts = [`${typeLabel}: ${costs.amount}`]
+  if (costs.notes) parts.push(costs.notes)
+  
+  return parts.join(' • ')
+}
+
+const getCostTypeLabel = (type: string) => {
+  switch (type) {
+    case 'для одного': return 'Для одного'
+    case 'для семьи': return 'Для семьи'
+    case 'для группы': return 'Для группы'
+    default: return 'Стоимость'
+  }
+}
+
+const getCostPlaceholder = (type: string) => {
+  switch (type) {
+    case 'для одного': return 'Например: 300₽'
+    case 'для семьи': return 'Например: 800₽'
+    case 'для группы': return 'Например: 1500₽'
+    default: return 'Введите стоимость'
+  }
+}
+
+// City coordinates mapping
+const cityCoordinates = {
+  'Калининград': [20.4522, 54.7104],
+  'Светлогорск': [20.1438, 54.9439],
+  'Зеленоградск': [20.4756, 54.9586],
+  'Янтарный': [19.9408, 54.8715],
+  'Советск': [21.8886, 55.0816],
+  'Балтийск': [19.9140, 54.6514],
+  'Черняховск': [21.7969, 54.6244],
+  'Гвардейск': [21.0606, 54.6518],
+  'Гусев': [22.1992, 54.5900],
+  'Багратионовск': [20.6417, 54.3872],
+  'Пионерский': [20.2270, 54.9500],
+  'Гурьевск': [20.6036, 54.7708],
+  'Озерск': [22.0158, 54.4106],
+  'Железнодорожный': [21.3039, 54.3433],
+  'Нестеров': [22.5666, 54.6319],
+  'Правдинск': [21.0080, 54.4432],
+  'Краснознаменск': [22.4924, 54.9456],
+  'Славск': [21.6761, 55.0497],
+  'Полесск': [21.0994, 54.8623],
+  'Неман': [22.0325, 55.0317],
+  'Ладушкин': [20.1701, 54.5696],
+  'Мамоново': [19.9392, 54.4646]
+}
 
 // -------------------- Demo data --------------------
-const trails = ref<Trail[]>([
+// Initialize with some sample trails if empty
+if (allTrails.value.length === 0) {
+  allTrails.value = [
   {
     id: 1,
     title: 'Прогулка по Канта и Рыбной деревне',
     cover: '/Kaliningrad.jpeg',
     media: ['/Kaliningrad.jpeg', '/Svetlogorsk.jpeg'],
-    duration: 3, distance: 4.8, difficulty: 'easy',
+      duration: 3, distance: 4.8, difficulty: 'лёгкий',
     tags: ['история', 'город', 'семейный'],
-    facilities: { toilets: true, rest: true, playground: false, accessible: true },
+    facilities: { 
+      toilets: true, rest: true, playground: false, accessible: true,
+      parking: true, wifi: true, cafe: true, water: true, shelter: false, lighting: true, security: true
+    },
+      payment: { cash: true, card: true },
+      costs: {
+        selectedType: 'для одного',
+        amount: '300₽',
+        notes: 'Билеты в музей, вход в парк'
+      },
     ratings: { overall: 4.7, scenery: 4.6, access: 4.8, comfort: 4.5 },
     stops: [
       { title: 'Кафедральный собор', note: 'Кантов остров, музыка органа', lat: 54.7100, lng: 20.5072 },
@@ -532,9 +1022,18 @@ const trails = ref<Trail[]>([
     title: 'Закат в Светлогорске: набережная и парковая тропа',
     cover: '/Svetlogorsk.jpeg',
     media: ['/Svetlogorsk.jpeg'],
-    duration: 2.5, distance: 5.2, difficulty: 'moderate',
+      duration: 2.5, distance: 5.2, difficulty: 'средний',
     tags: ['море', 'виды', 'романтика'],
-    facilities: { toilets: true, rest: true, playground: true, accessible: false },
+    facilities: { 
+      toilets: true, rest: true, playground: true, accessible: false,
+      parking: false, wifi: false, cafe: true, water: true, shelter: true, lighting: false, security: false
+    },
+      payment: { cash: true, card: false },
+      costs: {
+        selectedType: 'для одного',
+        amount: 'Бесплатно',
+        notes: 'Прогулка по набережной и парку'
+      },
     ratings: { overall: 4.9, scenery: 5.0, access: 4.2, comfort: 4.6 },
     stops: [
       { title: 'Набережная', note: 'Лучшие фото у моря', lat: 54.9431, lng: 20.1565 },
@@ -543,38 +1042,11 @@ const trails = ref<Trail[]>([
     comments: [],
     owner: { name: 'Мария', avatar: '/guide3.png' },
     featured: true
-  },
-  {
-    id: 3,
-    title: 'Дюны Зеленоградска: семейная прогулка',
-    cover: '/Zelenogradsk.jpeg',
-    media: ['/Zelenogradsk.jpeg'],
-    duration: 4, distance: 8.3, difficulty: 'easy',
-    tags: ['семейный', 'природа'],
-    facilities: { toilets: false, rest: true, playground: true, accessible: false },
-    ratings: { overall: 4.6, scenery: 4.8, access: 4.1, comfort: 4.2 },
-    stops: [],
-    comments: [],
-    owner: { name: 'Артём', avatar: '/guide1.png' }
-  },
-  {
-    id: 4,
-    title: 'Прогулка по Канта и Рыбной деревне',
-    cover: '/Kaliningrad.jpeg',
-    media: ['/Kaliningrad.jpeg', '/Svetlogorsk.jpeg'],
-    duration: 3, distance: 4.8, difficulty: 'hard',
-    tags: ['история', 'город', 'семейный'],
-    facilities: { toilets: true, rest: true, playground: false, accessible: true },
-    ratings: { overall: 4.7, scenery: 4.6, access: 4.8, comfort: 4.5 },
-    stops: [
-      { title: 'Кафедральный собор', note: 'Кантов остров, музыка органа', lat: 54.7100, lng: 20.5072 },
-      { title: 'Рыбная деревня', note: 'Мосты и видовые площадки', lat: 54.7095, lng: 20.5137 }
-    ],
-    comments: [],
-    owner: { name: 'Илья', avatar: '/guide2.png' },
-    featured: true
-  },
-])
+    }
+  ]
+}
+
+const trails = allTrails
 
 const featured = computed(() => trails.value.filter(t => t.featured))
 
@@ -631,9 +1103,16 @@ const allTags = computed(() => {
 
 const facilities = [
   { key: 'toilets', label: 'Туалеты', short: 'WC', icon: 'mdi:toilet' },
-  { key: 'rest', label: 'Место отдыха', short: 'Rest', icon: 'mdi:bench' },
-  { key: 'playground', label: 'Площадка', short: 'Kids', icon: 'mdi:castle' },
-  { key: 'accessible', label: 'Доступно', short: 'ACC', icon: 'mdi:wheelchair-accessibility' }
+  { key: 'rest', label: 'Место отдыха', short: 'Отдых', icon: 'mdi:bench' },
+  { key: 'playground', label: 'Площадка', short: 'Дети', icon: 'mdi:castle' },
+  { key: 'accessible', label: 'Доступно', short: 'Доступ', icon: 'mdi:wheelchair-accessibility' },
+  { key: 'parking', label: 'Парковка', short: 'Парковка', icon: 'mdi:car' },
+  { key: 'wifi', label: 'Wi-Fi', short: 'WiFi', icon: 'mdi:wifi' },
+  { key: 'cafe', label: 'Кафе', short: 'Кафе', icon: 'mdi:coffee' },
+  { key: 'water', label: 'Вода', short: 'Вода', icon: 'mdi:water' },
+  { key: 'shelter', label: 'Укрытие', short: 'Укрытие', icon: 'mdi:umbrella' },
+  { key: 'lighting', label: 'Освещение', short: 'Свет', icon: 'mdi:lightbulb' },
+  { key: 'security', label: 'Охрана', short: 'Охрана', icon: 'mdi:shield' }
 ] as const
 
 const matchesRange = (val: number, spec: string) => {
@@ -703,63 +1182,183 @@ const share = async (t: Trail) => {
 
 // -------------------- Create route modal --------------------
 const showCreate = ref(false)
+const currentStep = ref(1)
+const fileInput = ref<HTMLInputElement | null>(null)
+const showTagSuggestions = ref(false)
+const selectedCity = ref<string>(localStorage.getItem('selectedCity') || 'Калининград')
+
 const form = ref({
   title: '',
-  duration: null as number | null,
-  distance: null as number | null,
+  duration: '' as string,
+  distance: '' as string,
   difficulty: '' as '' | Difficulty,
   summary: '',
   tags: [] as string[],
-  facilities: { toilets: false, rest: false, playground: false, accessible: false },
+  facilities: { 
+    toilets: false, rest: false, playground: false, accessible: false,
+    parking: false, wifi: false, cafe: false, water: false, shelter: false, lighting: false, security: false
+  },
+  payment: { cash: false, card: false },
+  costs: {
+    selectedType: '',
+    amount: '',
+    notes: ''
+  },
+  ratings: { overall: 5, scenery: 5, access: 5, comfort: 5 },
   media: [] as string[],
   stops: [] as { title: string; note?: string; lat: number; lng: number }[]
 })
 const tagInput = ref('')
+
+// Helper functions for the new form
+const getDifficultyIcon = (diff: Difficulty) => {
+  switch (diff) {
+    case 'лёгкий': return 'mdi:walk'
+    case 'средний': return 'mdi:hiking'
+    case 'сложный': return 'mdi:mountain'
+    default: return 'mdi:walk'
+  }
+}
+
+const tagSuggestions = [
+  'история', 'город', 'семейный', 'море', 'виды', 'романтика', 
+  'природа', 'культура', 'активный', 'спокойный', 'вечерний', 'утренний'
+]
+
+const facilitiesList = [
+  { key: 'toilets' as const, label: 'Туалеты', icon: 'mdi:toilet' },
+  { key: 'rest' as const, label: 'Место отдыха', icon: 'mdi:bench' },
+  { key: 'playground' as const, label: 'Детская площадка', icon: 'mdi:castle' },
+  { key: 'accessible' as const, label: 'Доступность', icon: 'mdi:wheelchair-accessibility' },
+  { key: 'parking' as const, label: 'Парковка', icon: 'mdi:car' },
+  { key: 'wifi' as const, label: 'Wi-Fi', icon: 'mdi:wifi' },
+  { key: 'cafe' as const, label: 'Кафе', icon: 'mdi:coffee' },
+  { key: 'water' as const, label: 'Питьевая вода', icon: 'mdi:water' },
+  { key: 'shelter' as const, label: 'Укрытие', icon: 'mdi:umbrella' },
+  { key: 'lighting' as const, label: 'Освещение', icon: 'mdi:lightbulb' },
+  { key: 'security' as const, label: 'Охрана', icon: 'mdi:shield' }
+]
 
 const addTag = () => {
   const v = tagInput.value.trim().toLowerCase()
   if (v && !form.value.tags.includes(v)) form.value.tags.push(v)
   tagInput.value = ''
 }
+
+const addTagFromSuggestion = (suggestion: string) => {
+  if (!form.value.tags.includes(suggestion)) {
+    form.value.tags.push(suggestion)
+  }
+}
+
+const handleTagInputBlur = () => {
+  setTimeout(() => {
+    showTagSuggestions.value = false
+  }, 200)
+}
+
 const removeTag = (i: number) => form.value.tags.splice(i, 1)
+
+const toggleFormFacility = (key: string) => {
+  form.value.facilities[key as keyof typeof form.value.facilities] = !form.value.facilities[key as keyof typeof form.value.facilities]
+}
+
+const triggerFileUpload = () => {
+  fileInput.value?.click()
+}
+
 const handleUpload = (e: Event) => {
   const files = Array.from((e.target as HTMLInputElement).files || [])
   files.forEach(f => form.value.media.push(URL.createObjectURL(f)))
 }
-const canCreate = computed(() =>
-  !!form.value.title && !!form.value.duration && !!form.value.distance && !!form.value.difficulty && form.value.media.length > 0
-)
+
+const removeMedia = (index: number) => {
+  form.value.media.splice(index, 1)
+}
+
+
+
+const canProceed = computed(() => {
+  switch (currentStep.value) {
+    case 1:
+      return !!form.value.title && !!form.value.duration && !!form.value.distance && !!form.value.difficulty
+    case 2:
+      return true // Stops are optional
+    case 3:
+      return true // Facilities are optional
+    case 4:
+      return form.value.media.length > 0
+    default:
+      return false
+  }
+})
+
+const canCreate = computed(() => {
+  const durationValid = form.value.duration && !isNaN(parseFloat(form.value.duration))
+  const distanceValid = form.value.distance && !isNaN(parseFloat(form.value.distance))
+  return !!form.value.title && durationValid && distanceValid && !!form.value.difficulty && form.value.media.length > 0
+})
+
+// Debug function to test all form elements
+
+
 const createRoute = () => {
-  const id = Math.max(0, ...trails.value.map(t => t.id)) + 1
+  const id = Math.max(0, ...allTrails.value.map(t => t.id)) + 1
   const cover = form.value.media[0]
-  trails.value.unshift({
+  const newTrail: Trail = {
     id,
     title: form.value.title,
     cover,
     media: [...form.value.media],
-    duration: form.value.duration!,
-    distance: form.value.distance!,
+    duration: parseFloat(form.value.duration),
+    distance: parseFloat(form.value.distance),
     difficulty: form.value.difficulty as Difficulty,
     tags: [...form.value.tags],
     facilities: { ...form.value.facilities },
-    ratings: { overall: 5, scenery: 5, access: 5, comfort: 5 },
-    stops: [],
+    payment: { ...form.value.payment },
+    costs: {
+      selectedType: form.value.costs.selectedType as 'для одного' | 'для семьи' | 'для группы',
+      amount: form.value.costs.amount,
+      notes: form.value.costs.notes
+    },
+    ratings: { ...form.value.ratings },
+    stops: [...form.value.stops],
     comments: [],
     owner: { name: 'Вы', avatar: '/guide1.png' },
-    featured: false
-  })
+    featured: false,
+    summary: form.value.summary
+  }
+  
+  allTrails.value.unshift(newTrail)
+  
   showCreate.value = false
+  currentStep.value = 1
+  resetForm()
+}
+
+const resetForm = () => {
   form.value = {
     title: '',
-    duration: null,
-    distance: null,
+    duration: '',
+    distance: '',
     difficulty: '',
     summary: '',
     tags: [],
-    facilities: { toilets: false, rest: false, playground: false, accessible: false },
+    facilities: { 
+      toilets: false, rest: false, playground: false, accessible: false,
+      parking: false, wifi: false, cafe: false, water: false, shelter: false, lighting: false, security: false
+    },
+    payment: { cash: false, card: false },
+    costs: {
+      selectedType: '' as 'для одного' | 'для семьи' | 'для группы' | '',
+      amount: '',
+      notes: ''
+    },
+    ratings: { overall: 5, scenery: 5, access: 5, comfort: 5 },
     media: [],
     stops: []
   }
+  tagInput.value = ''
 }
 
 // -------------------- Nav stub --------------------
@@ -1068,7 +1667,7 @@ const initMap = async (trail: Trail) => {
   );
 
   map.on('load', async () => {
-    console.log('Map loaded, starting pin creation...');
+
     
     // Add visual enhancements
     map!.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -1085,7 +1684,7 @@ const initMap = async (trail: Trail) => {
 
     
     // Drop pins with staggered delay
-    console.log('Creating', trail.stops.length, 'pins');
+
     for (let i = 0; i < trail.stops.length; i++) {
       const s = trail.stops[i];
       const el = makePinEl(i * 150); // Staggered drop timing
@@ -1094,19 +1693,19 @@ const initMap = async (trail: Trail) => {
         .addTo(map!);
       el.title = `${s.title}\n${s.note ?? ''}`.trim();
       markers.push(mk);
-      console.log(`Pin ${i + 1} created at [${s.lng}, ${s.lat}]`);
+      
       
       // Remove drop class after animation (Apple-style timing)
       setTimeout(() => {
         el.classList.remove('pin-drop');
-        console.log(`Pin ${i + 1} dropped, classes:`, el.className);
+
         // Add bounce after drop animation completes
         setTimeout(() => {
           el.classList.add('pin-bounce');
-          console.log(`Pin ${i + 1} bouncing, classes:`, el.className);
+          
           setTimeout(() => {
             el.classList.remove('pin-bounce');
-            console.log(`Pin ${i + 1} bounce finished, classes:`, el.className);
+            
           }, 800);
         }, 100);
       }, i * 200 + 600);
@@ -1198,7 +1797,7 @@ const initMap = async (trail: Trail) => {
           );
           
           routed = await Promise.race([routePromise, timeoutPromise]);
-          console.log('OSRM route fetched:', routed.length, 'points');
+      
           
           if (!routed.length) throw new Error('Empty route geometry');
         } catch (e) {
@@ -1321,9 +1920,70 @@ watch(active, async (val) => {
   initMap(val)
 })
 
+// init create map when step 2 is reached
+watch(currentStep, async (step) => {
+  if (step === 2) {
+    await nextTick()
+    // Clean up existing map if it exists
+    if (createMapInstance) {
+      createMapInstance.remove()
+      createMapInstance = null
+    }
+    // Clear markers
+    createMapMarkers.forEach(marker => marker.remove())
+    createMapMarkers = []
+    
+    // Initialize new map
+    initCreateMap()
+  } else {
+    // Clean up map when leaving step 2
+    if (createMapInstance) {
+      createMapInstance.remove()
+      createMapInstance = null
+    }
+    createMapMarkers.forEach(marker => marker.remove())
+    createMapMarkers = []
+  }
+})
+
+// Watch for city changes and update map
+watch(selectedCity, (newCity) => {
+  if (currentStep.value === 2 && createMapInstance) {
+    // Get coordinates for new city
+    const cityCoords = cityCoordinates[newCity as keyof typeof cityCoordinates] || [20.4522, 54.7104]
+    
+    // Fly to new city location
+    createMapInstance.flyTo({
+      center: cityCoords as [number, number],
+      zoom: 12,
+      duration: 2000
+    })
+  }
+})
+
+// Check for city changes from header (since localStorage changes aren't reactive)
+let lastKnownCity = selectedCity.value
+setInterval(() => {
+  const currentCity = localStorage.getItem('selectedCity') || 'Калининград'
+  if (currentCity !== lastKnownCity) {
+    lastKnownCity = currentCity
+    selectedCity.value = currentCity
+  }
+}, 1000) // Check every second
+
 // clean up when drawer closes (optional safety)
 watch(() => !!active.value, (open) => {
   if (!open) cleanupMap()
+})
+
+// Clean up maps when component unmounts
+onUnmounted(() => {
+  if (createMapInstance) {
+    createMapInstance.remove()
+    createMapInstance = null
+  }
+  createMapMarkers.forEach(marker => marker.remove())
+  createMapMarkers = []
 })
 
 // --- Rating bar color helper (for meters / bars) ---
@@ -1396,22 +2056,237 @@ const handleCommentFiles = (e: Event) => {
 
 // Create form map functions
 const createMapEl = ref<HTMLDivElement | null>(null)
-let createMapInstance: any = null
+let createMapInstance: Map | null = null
+let createMapMarkers: Marker[] = []
 
-const addStopFromMap = () => {
-  if (!createMapInstance) return
-  const center = createMapInstance.getCenter()
+const initCreateMap = () => {
+  if (!createMapEl.value) return
+
+  // Clean up existing map if it exists
+  if (createMapInstance) {
+    createMapInstance.remove()
+    createMapInstance = null
+  }
+
+  // Clear markers
+  createMapMarkers.forEach(marker => marker.remove())
+  createMapMarkers = []
+
+  // Get coordinates for selected city
+  const cityCoords = cityCoordinates[selectedCity.value as keyof typeof cityCoordinates] || [20.4522, 54.7104]
+  
+  // Create new map instance
+  createMapInstance = new maplibregl.Map({
+    container: createMapEl.value,
+    style: MAPTILER_STYLE,
+    center: cityCoords as [number, number],
+    zoom: 12,
+    attributionControl: false
+  })
+
+  createMapInstance.on('load', () => {
+    // Add navigation controls
+    createMapInstance!.addControl(new maplibregl.NavigationControl(), 'top-right')
+    
+    // Add click handler to add stops
+    createMapInstance!.on('click', (e: any) => {
+      const { lng, lat } = e.lngLat
+      addStopAtLocation(lng, lat)
+    })
+
+    // Update existing stops on map
+    updateCreateMapMarkers()
+  })
+}
+
+const addStopAtLocation = (lng: number, lat: number) => {
   const newStop = {
     title: `Остановка ${form.value.stops.length + 1}`,
     note: '',
-    lat: center.lat,
-    lng: center.lng
+    lat: lat,
+    lng: lng
   }
   form.value.stops.push(newStop)
+  updateCreateMapMarkers()
+}
+
+const updateCreateMapMarkers = async () => {
+  // Remove existing markers and route line
+  createMapMarkers.forEach(marker => marker.remove())
+  createMapMarkers = []
+  
+  if (createMapInstance) {
+    // Remove existing route layers if they exist
+    if (createMapInstance.getLayer('create-route-line')) {
+      createMapInstance.removeLayer('create-route-line')
+    }
+    if (createMapInstance.getLayer('create-route-glow')) {
+      createMapInstance.removeLayer('create-route-glow')
+    }
+    if (createMapInstance.getSource('create-route-source')) {
+      createMapInstance.removeSource('create-route-source')
+    }
+  }
+
+  // Hide route info display
+  routeInfoData.value.show = false
+
+  // Add markers for each stop
+  form.value.stops.forEach((stop, index) => {
+    const el = document.createElement('div')
+    el.className = 'create-map-pin'
+    el.innerHTML = `
+      <div class="pin-emoji">📍</div>
+      <div class="pin-number">${index + 1}</div>
+      <div class="pin-label">${stop.title}</div>
+    `
+    
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([stop.lng, stop.lat])
+      .addTo(createMapInstance!)
+    
+    createMapMarkers.push(marker)
+  })
+
+  // Calculate and display real route between stops
+  if (form.value.stops.length > 1 && createMapInstance) {
+    await calculateAndDisplayRoute()
+  }
+}
+
+const calculateAndDisplayRoute = async () => {
+  if (!createMapInstance || form.value.stops.length < 2) return
+
+  // Show loading state
+  routeInfoData.value = {
+    distance: 'Расчет...',
+    duration: '',
+    show: true
+  }
+
+  try {
+    // Build coordinates string for OSRM
+    const coordinates = form.value.stops.map(stop => `${stop.lng},${stop.lat}`).join(';')
+    
+    // Fetch route from OSRM (walking)
+    const response = await fetch(
+      `https://router.project-osrm.org/route/v1/foot-walking/${coordinates}?overview=full&geometries=geojson&annotations=duration,distance`
+    )
+    
+    if (!response.ok) {
+      console.error('Failed to fetch route')
+      return
+    }
+
+    const routeData = await response.json()
+    
+    if (routeData.routes && routeData.routes.length > 0) {
+      const route = routeData.routes[0]
+      
+      // Update form distance with calculated route distance
+      const routeDistanceKm = (route.distance / 1000).toFixed(1)
+      form.value.distance = routeDistanceKm
+      
+      // Calculate route duration with realistic walking speed (4 km/h for tourists)
+      const walkingSpeedKmH = 4.0 // 4 km/h for more realistic tourist walking
+      const routeDistanceNum = route.distance / 1000
+      const routeDurationMinutes = Math.round((routeDistanceNum / walkingSpeedKmH) * 60)
+      
+      // Convert minutes to hours (decimal format for form)
+      const routeDurationHours = (routeDurationMinutes / 60).toFixed(1)
+      form.value.duration = routeDurationHours
+      
+      // Add route to map
+      createMapInstance.addSource('create-route-source', {
+        type: 'geojson',
+        data: route.geometry
+      })
+
+      // Add glow effect layer
+      createMapInstance.addLayer({
+        id: 'create-route-glow',
+        type: 'line',
+        source: 'create-route-source',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#60a5fa',
+          'line-width': 8,
+          'line-opacity': 0.3
+        }
+      })
+
+      // Add main route line
+      createMapInstance.addLayer({
+        id: 'create-route-line',
+        type: 'line',
+        source: 'create-route-source',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 4,
+          'line-opacity': 0.9
+        }
+      })
+
+      // Update route info display
+      updateRouteInfo(routeDistanceKm, routeDurationMinutes / 60)
+    }
+  } catch (error) {
+    console.error('Error calculating route:', error)
+  }
+}
+
+const routeInfoData = ref({
+  distance: '',
+  duration: '',
+  show: false
+})
+
+const updateRouteInfo = (distance: string, duration: number) => {
+  // Convert decimal hours to hours and minutes format
+  const hours = Math.floor(duration)
+  const minutes = Math.round((duration - hours) * 60)
+  
+  let durationText = ''
+  if (hours > 0) {
+    durationText = `${hours}ч`
+    if (minutes > 0) {
+      durationText += ` ${minutes}мин`
+    }
+  } else {
+    durationText = `${minutes}мин`
+  }
+  
+  routeInfoData.value = {
+    distance,
+    duration: durationText,
+    show: true
+  }
+}
+
+const addStopFromMap = () => {
+  if (!createMapInstance) {
+    initCreateMap()
+    return
+  }
+  const center = createMapInstance.getCenter()
+  addStopAtLocation(center.lng, center.lat)
 }
 
 const removeStop = (index: number) => {
   form.value.stops.splice(index, 1)
+  updateCreateMapMarkers()
+  
+  // If we have less than 2 stops, clear the distance field
+  if (form.value.stops.length < 2) {
+    form.value.distance = ''
+  }
 }
 </script>
 
@@ -1431,9 +2306,9 @@ const removeStop = (index: number) => {
 .feat-overlay{ position:absolute; inset:auto 0 0 0; padding:10px 12px; background:linear-gradient(transparent,rgba(0,0,0,.55)); color:#fff; display:grid; row-gap:6px; }
 .feat-title{ margin:0; font-weight:800; font-size:1.05rem }
 .feat-meta{ display:flex; gap:10px; align-items:center; font-weight:700; font-size:.92rem }
-.diff[data-diff="easy"]{ background:#00ffaadc; color:#075d44; padding:2px 8px; border-radius:8px }
-.diff[data-diff="moderate"]{ background:#f3dd87; color:#6b5302; padding:2px 8px; border-radius:8px }
-.diff[data-diff="hard"]{ background:#eeb2b2; color:#901d1d; padding:2px 8px; border-radius:8px }
+.diff[data-diff="лёгкий"]{ background:#00ffaadc; color:#075d44; padding:2px 8px; border-radius:8px }
+.diff[data-diff="средний"]{ background:#f3dd87; color:#6b5302; padding:2px 8px; border-radius:8px }
+.diff[data-diff="сложный"]{ background:#eeb2b2; color:#901d1d; padding:2px 8px; border-radius:8px }
 .feat-create{ flex:0 0 42vw; height:25vh; align-self:center; border-radius:16px; border:2px dashed #3b82f6; color:#0b5bd7; background:linear-gradient(135deg,#e0f2ff77,#c7e9ff66); display:grid; place-items:center; gap:6px; font-weight:800; cursor:pointer; scroll-snap-align:center; }
 .feat-create span{ font-size:2rem }
 
@@ -1482,9 +2357,9 @@ const removeStop = (index: number) => {
 .sheet-metrics{ width:100%; display:flex; justify-content:center; align-items:center; gap:10px; flex-wrap:wrap; margin-top:6px }
 .chip-metric{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#f3f4f6; font-weight:700; }
 .chip-metric.rating{ background:#fff7ed; border:1px solid #fed7aa }
-.diff-pill[data-diff="easy"]{ background:linear-gradient(90deg,#b6ffd8,#1dbf73); color:#064e3b }
-.diff-pill[data-diff="moderate"]{ background:linear-gradient(90deg,#ffeaa7,#ff9f1a); color:#7c2d12 }
-.diff-pill[data-diff="hard"]{ background:linear-gradient(90deg,#ffb3b3,#ff2d2d); color:#7f1d1d }
+.diff-pill[data-diff="лёгкий"]{ background:linear-gradient(90deg,#b6ffd8,#1dbf73); color:#064e3b }
+.diff-pill[data-diff="средний"]{ background:linear-gradient(90deg,#ffeaa7,#ff9f1a); color:#7c2d12 }
+.diff-pill[data-diff="сложный"]{ background:linear-gradient(90deg,#ffb3b3,#ff2d2d); color:#7f1d1d }
 
 /* media slider */
 .media-slider{ padding:10px 10px 0 }
@@ -1855,7 +2730,1600 @@ const removeStop = (index: number) => {
 .viewer-close{ position:absolute; top:10px; right:10px; width:44px; height:44px; border-radius:12px; border:none; background:#111827; color:#fff; display:grid; place-items:center; cursor:pointer }
 
 /* Modal (create) */
-.modal{ position:fixed; inset:0; background:rgba(0,0,0,.3); backdrop-filter:blur(6px); display:grid; place-items:end; z-index:70; }
+.modal{ 
+  position:fixed; 
+  inset:0; 
+  background:rgba(0,0,0,.3); 
+  backdrop-filter:blur(6px); 
+  display:flex; 
+  align-items:flex-end; 
+  justify-content:center; 
+  z-index:70; 
+  padding: 24px 16px 8px;
+  overflow: hidden;
+  /* Account for mobile browser UI */
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+}
+
+/* New Create Form Styles */
+.create-panel{ 
+  width:100%; 
+  max-width: 800px;
+  max-height:75vh; 
+  overflow:hidden; 
+  background:#fff; 
+  border-radius:16px 16px 0 0; 
+  animation:slideUp .25s ease; 
+  display:flex; 
+  flex-direction:column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  position: relative;
+  margin-top: 20vh;
+  transform: translateY(3vh);
+}
+
+.create-panel::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: #d1d5db;
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.create-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
+  min-height: 60px;
+}
+
+.create-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.close-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: #6b7280;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.close-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.close-btn:active {
+  background: #d1d5db;
+  transform: scale(0.95);
+}
+
+@media (max-width: 480px) {
+  .close-btn {
+    background: #ef4444;
+    color: #fff;
+  }
+  
+  .close-btn:hover {
+    background: #dc2626;
+  }
+}
+
+.create-progress {
+  display: flex;
+  padding: 20px 24px;
+  gap: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fafafa;
+  margin-bottom: 8px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  min-width: 0;
+  flex: 1;
+}
+
+.progress-step.active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.create-step {
+  flex: 1;
+  padding: 24px;
+  padding-top: 32px;
+  padding-bottom: 80px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.form-section {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-section h4 {
+  margin: 0 0 8px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.section-description {
+  margin: 0 0 24px;
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  background: #fff;
+}
+
+.form-input:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error, .form-textarea.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    padding: 20px 8px 8px;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  }
+  
+  .create-panel {
+    max-height: 70vh;
+    margin-top: 10vh;
+    transform: translateY(2vh);
+  }
+  
+  .create-panel {
+    max-height: 80vh;
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .create-header {
+    padding: 16px 20px 12px;
+  }
+  
+  .create-header h3 {
+    font-size: 1.125rem;
+  }
+  
+  .create-progress {
+    padding: 12px 20px;
+    gap: 8px;
+  }
+  
+  .progress-step {
+    padding: 8px 12px;
+    font-size: 0.875rem;
+  }
+  
+  .progress-step span {
+    display: none;
+  }
+  
+  .create-step {
+    padding: 20px;
+    padding-top: 28px;
+    padding-bottom: 70px;
+  }
+  
+  .form-section {
+    max-width: none;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .difficulty-selector {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .difficulty-btn {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    padding: 18px 8px 8px;
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  
+  .create-panel {
+    max-height: 65vh;
+    margin-top: 8vh;
+    transform: translateY(1vh);
+  }
+  
+  .create-panel {
+    max-height: 78vh;
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .create-header {
+    padding: 12px 16px 8px;
+  }
+  
+  .create-header h3 {
+    font-size: 1rem;
+  }
+  
+  .create-progress {
+    padding: 12px 16px;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  
+  .progress-step {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .step-number {
+    width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+  
+  .create-step {
+    padding: 16px;
+  }
+  
+  .form-input, .form-textarea {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .create-map-frame {
+    height: 150px;
+  }
+  
+  .map-instructions {
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .city-info {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+  
+  .route-info-below {
+    padding: 16px;
+    margin-top: 12px;
+  }
+  
+  .route-info-header h4 {
+    font-size: 16px;
+  }
+  
+  .stat-content {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  
+  .stat-icon {
+    font-size: 20px;
+    width: 28px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .modal {
+    padding: 16px 6px 6px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  
+  .create-panel {
+    max-height: 60vh;
+    margin-top: 6vh;
+    transform: translateY(0.5vh);
+  }
+  
+  .create-panel {
+    max-height: 75vh;
+  }
+  
+  .create-header {
+    padding: 30px 22px 26px;
+  }
+  
+  .create-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .close-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .create-progress {
+    padding: 6px 12px;
+  }
+  
+  .create-step {
+    padding: 12px;
+    padding-bottom: 60px;
+  }
+  
+  .form-input, .form-textarea {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+  
+  .create-map-frame {
+    height: 120px;
+  }
+  
+  .route-info-below {
+    padding: 12px;
+    margin-top: 8px;
+  }
+  
+  .stat-content {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  
+  .stat-icon {
+    font-size: 18px;
+    width: 24px;
+  }
+  
+  .stat-value {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 19px 6px 6px;
+    padding-top: calc(19px + env(safe-area-inset-top, 0px));
+  }
+  
+  .create-panel {
+    max-height: 68vh;
+    margin-top: 9vh;
+    transform: translateY(1.5vh);
+  }
+  
+  .create-panel {
+    max-height: 82vh;
+  }
+  
+  .create-header {
+    padding: 14px 18px 10px;
+  }
+  
+  .create-progress {
+    padding: 16px 18px;
+    margin-bottom: 6px;
+  }
+  
+  .progress-step {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .step-number {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+  
+  .create-step {
+    padding: 18px;
+    padding-top: 24px;
+    padding-bottom: 65px;
+  }
+}
+
+.difficulty-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.difficulty-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.difficulty-btn:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.difficulty-btn.active {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.difficulty-btn .iconify {
+  font-size: 1.5rem;
+}
+
+.tags-input-container {
+  position: relative;
+}
+
+.tags-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.suggestions-header {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.tags-suggestions .tag-suggestion {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 2px;
+}
+
+.tags-suggestions .tag-suggestion:hover {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.tags-suggestions .tag-suggestion.add-custom {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.tags-suggestions .tag-suggestion.add-custom:hover {
+  background: #0369a1;
+  color: #fff;
+  border-color: #0369a1;
+}
+
+.tag-suggestion {
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-suggestion:hover {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-chip:hover {
+  background: #bae6fd;
+}
+
+.tag-chip .iconify {
+  font-size: 0.75rem;
+}
+
+/* Stops Section */
+.stops-map-container {
+  margin-bottom: 20px;
+}
+
+.map-instructions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  color: #0369a1;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.map-instructions > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.city-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #e0f2fe;
+  border: 1px solid #7dd3fc;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.map-instructions .iconify {
+  font-size: 1.125rem;
+}
+
+.create-map-frame {
+  width: 100%;
+  height: 200px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: #f9fafb;
+  cursor: crosshair;
+}
+
+.create-map-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  animation: pinPulse 2s infinite;
+}
+
+.create-map-pin:hover {
+  transform: scale(1.2);
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5));
+  animation: none;
+}
+
+@keyframes pinPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.pin-emoji {
+  font-size: 36px;
+  line-height: 1;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.pin-number {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(255, 107, 107, 0.4);
+  animation: numberGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes numberGlow {
+  0% {
+    box-shadow: 0 3px 8px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    box-shadow: 0 3px 12px rgba(255, 107, 107, 0.7);
+  }
+}
+
+.pin-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+.create-map-pin:hover .pin-label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.route-info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 340px;
+  backdrop-filter: blur(10px);
+}
+
+.route-info-below {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-top: 16px;
+}
+
+.route-info-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.route-info-header h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.route-info-below .route-info-header h4 {
+  color: #111827;
+  text-shadow: none;
+}
+
+.route-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.route-stat {
+  padding: 0;
+  border: none;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.stat-content:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.route-info-below .stat-content {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  backdrop-filter: none;
+}
+
+.route-info-below .stat-content:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  font-size: 24px;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.stat-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.stat-value {
+  font-weight: 800;
+  font-size: 20px;
+  color: #ffffff;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.route-info-below .stat-value {
+  color: #111827;
+  text-shadow: none;
+}
+
+.route-info-below .stat-label {
+  color: #6b7280;
+  text-shadow: none;
+}
+
+.map-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.map-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.map-btn.secondary {
+  background: #fff;
+  color: #3b82f6;
+}
+
+.map-btn.secondary:hover {
+  background: #f0f9ff;
+}
+
+.map-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.map-btn-small:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.empty-stops {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.empty-stops .iconify {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-stops p {
+  margin: 0 0 8px;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.empty-stops span {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.stops-list {
+  display: grid;
+  gap: 12px;
+}
+
+.stop-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.stop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stop-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.remove-stop {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-stop:hover {
+  background: #fecaca;
+}
+
+.stop-content {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.stop-title-input, .stop-note-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.stop-note-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.stop-coordinates {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-family: 'Courier New', monospace;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+/* Facilities Section */
+.facilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.facility-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.facility-item:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.facility-item.active {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.facility-item .iconify {
+  font-size: 1.5rem;
+}
+
+.payment-section {
+  margin-bottom: 32px;
+}
+
+.payment-section h5 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.payment-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.payment-option {
+  display: block;
+  cursor: pointer;
+}
+
+.payment-option input {
+  display: none;
+}
+
+.payment-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  transition: all 0.2s ease;
+  text-align: center;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.payment-option input:checked + .payment-content {
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.costs-section {
+  margin-top: 24px;
+}
+
+.costs-section h5 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.costs-input {
+  margin-top: 12px;
+}
+
+.costs-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cost-type-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cost-type-select {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #fff;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cost-type-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cost-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cost-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cost-label .iconify {
+  font-size: 18px;
+  color: #6b7280;
+}
+
+.cost-amount-field {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.cost-amount-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.cost-amount-field::placeholder {
+  color: #9ca3af;
+}
+
+.costs-notes {
+  margin-top: 16px;
+}
+
+.costs-notes-field {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #fff;
+  transition: all 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.costs-notes-field:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.costs-notes-field::placeholder {
+  color: #9ca3af;
+}
+
+.payment-content .iconify {
+  font-size: 1.5rem;
+}
+
+/* Ratings Section */
+.ratings-section {
+  margin-bottom: 32px;
+}
+
+.ratings-section h5 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.ratings-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.rating-item {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+@media (max-width: 768px) {
+  .ratings-section {
+    margin-bottom: 24px;
+  }
+  
+  .ratings-grid {
+    gap: 16px;
+  }
+  
+  .rating-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .rating-item label {
+    font-size: 0.9rem;
+  }
+  
+  .rating-stars {
+    justify-content: center;
+    gap: 2px;
+  }
+  
+  .star-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .rating-value {
+    text-align: center;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ratings-section {
+    margin-bottom: 20px;
+  }
+  
+  .ratings-section h5 {
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+  
+  .ratings-grid {
+    gap: 12px;
+  }
+  
+  .rating-item {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .rating-item label {
+    font-size: 0.8rem;
+  }
+  
+  .star-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .rating-value {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .ratings-section {
+    margin-bottom: 16px;
+  }
+  
+  .ratings-section h5 {
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+  
+  .ratings-grid {
+    gap: 10px;
+  }
+  
+  .rating-item {
+    padding: 8px;
+    gap: 6px;
+  }
+  
+  .rating-item label {
+    font-size: 0.75rem;
+  }
+  
+  .star-btn {
+    width: 22px;
+    height: 22px;
+  }
+  
+  .rating-value {
+    font-size: 0.75rem;
+  }
+}
+
+.rating-item label {
+  margin: 0;
+  font-weight: 600;
+  color: #374151;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.star-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: #e5e7eb;
+  color: #9ca3af;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-btn:hover {
+  background: #fbbf24;
+  color: #fff;
+}
+
+.star-btn.active {
+  background: #fbbf24;
+  color: #fff;
+}
+
+.rating-value {
+  font-weight: 700;
+  color: #f59e0b;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Media Section */
+.media-upload-area {
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f9fafb;
+}
+
+.media-upload-area:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-content .iconify {
+  font-size: 3rem;
+  color: #9ca3af;
+}
+
+.upload-content h5 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.upload-content p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.upload-content span {
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+.media-preview {
+  margin-top: 24px;
+}
+
+.media-preview h5 {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.media-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.media-item img, .media-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-media {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.cover-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 2px 6px;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+/* Navigation */
+.create-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1.5rem 0.5rem;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-btn.primary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.nav-btn.primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.nav-btn.primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.nav-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.nav-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+/* Legacy styles for backward compatibility */
 .panel{ width:100%; max-height:92vh; overflow:auto; background:#fff; border-radius:16px 16px 0 0; padding:14px; animation:slideUp .25s ease; display:grid; row-gap:10px; }
 .panel h3{ margin:0 0 4px }
 .row2{ display:grid; grid-template-columns:1fr 1fr; gap:8px }

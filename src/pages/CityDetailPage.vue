@@ -1,6 +1,5 @@
 <template>
   <div class="city-detail-page">
-    <!-- Fallbacks prevent broken layout even if city not found -->
     <div class="city-hero" :style="{ backgroundImage: `url(${city?.image || '/default-hero.jpg'})` }">
       <div
         class="city-hero-overlay"
@@ -18,25 +17,31 @@
       <p v-else style="opacity:.7">Описание появится позже.</p>
     </div>
 
+    <!-- Results count display -->
+    <div v-if="selectedCategory !== '👍🏼'" class="results-count">
+      <span>{{ getResultsCountText(filteredAttractions.length) }}</span>
+    </div>
+
     <!-- FILTERS BAR -->
-    <div class="filters-sticky" role="group" aria-label="Фильтры">
+    <div class="filters-sticky" role="toolbar" aria-label="Фильтры">
       <div class="category-scroll">
         <button
           v-for="category in categories"
           :key="category.name"
           class="chip"
-          :class="{ active: activeCategories.includes(category.name) }"
+          :class="{ active: selectedCategory === category.name }"
           @click="toggleCategory(category.name)"
           @keydown.enter.prevent="toggleCategory(category.name)"
           role="switch"
-          :aria-checked="activeCategories.includes(category.name)"
+          :aria-pressed="selectedCategory === category.name"
+          :aria-checked="selectedCategory === category.name"
         >
           <span class="bullet" aria-hidden="true"></span>
           <span class="label">{{ category.name }}</span>
         </button>
       </div>
 
-      <div class="quick-filters">
+      <div class="search-section">
         <input
           v-model="searchQuery"
           class="search-input"
@@ -44,43 +49,40 @@
           placeholder="Поиск по названию…"
           aria-label="Поиск attractions"
         />
-        <label class="toggle">
-          <input type="checkbox" v-model="freeOnly" />
-          <span>Бесплатно</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" v-model="cheapOnly" />
-          <span>Недорого</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" v-model="rating4p" />
-          <span>Рейтинг 4+</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" v-model="familyOnly" />
-          <span>Семейные</span>
-        </label>
-        <label class="toggle">
-          <input type="checkbox" v-model="accessibleOnly" />
-          <span>Доступно</span>
-        </label>
-        <button class="clear-btn" v-if="hasActiveFilters" @click="clearFilters">Сбросить</button>
-        <span class="result-count" aria-live="polite">Найдено: {{ filteredAttractions.length }}</span>
+        <button 
+          v-if="selectedCategory !== '👍🏼'" 
+          class="rating-sort-btn" 
+          @click="toggleRatingSort" 
+          :title="getRatingSortTitle()"
+        >
+          <span class="rating-stars">
+            <span v-for="i in 5" :key="i" class="star" :class="{ filled: getStarFilled(i) }">⭐</span>
+          </span>
+          <span class="sort-arrow">{{ getRatingSortIcon() }}</span>
+        </button>
+        <button class="advanced-filter-btn" @click="handleFilterClick" title="Расширенный фильтр">
+          ⚙️
+        </button>
       </div>
-    </div>
-
-    <div class="filter-bar">
-      <button class="filter-btn" @click="handleFilterClick">Расширенный фильтр</button>
     </div>
 
 <FilterModal
   v-if="showFilterModal"
   :category="singleSelectedCategory"
   :existingFilters="activeFilters"
+  :currentMatchCount="filteredAttractions.length"
   @apply="applyFilters"
   @close="showFilterModal = false"
 />
 
+
+    <!-- Active filter chips -->
+    <div class="active-chips" v-if="contextChips.length">
+      <button v-for="chip in contextChips" :key="chip.key" class="chip active" @click="chip.clear()">
+        {{ chip.label }} ×
+      </button>
+      <button class="clear-btn" @click="clearAllFilters">Очистить все</button>
+    </div>
 
     <!-- ATTRACTIONS -->
 <div
@@ -98,15 +100,124 @@
       loading="lazy"
       alt="attraction image"
     />
-    <div class="card-content">
-      <h3>{{ attraction.name }}</h3>
-      <p v-if="attraction.date">📅 {{ formatDateTimeRu(attraction.date) }}</p>
-      <p v-if="attraction.checkedIn">✅ {{ attraction.checkedIn }} участников</p>
-      <p v-if="attraction.price === 0">Бесплатно</p>
-      <p v-else-if="attraction.price">💶 {{ attraction.price }} ₽</p>
-    </div>
+        <div class="card-content">
+          <!-- Name and Rating -->
+          <div class="card-header">
+            <h3 class="attraction-name">{{ attraction.name }}</h3>
+            <div class="card-rating" v-if="attraction.rating">
+              <span class="stars">
+                <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= attraction.rating }">⭐</span>
+              </span>
+              <span class="rating-text">{{ attraction.rating }}/5</span>
+            </div>
+          </div>
+          
+          <!-- Reviews -->
+          <p v-if="attraction.checkedIn" class="participants">👥 {{ getReviewsText(attraction.checkedIn) }}</p>
+          
+          <!-- Price and Payment Method -->
+          <div class="price-section">
+            <span v-if="attraction.price === 0" class="price free">🆓 Бесплатно</span>
+            <span v-else-if="attraction.price" class="price">💶 {{ attraction.price }} ₽</span>
+            
+            <!-- Payment method for workshops -->
+            <div v-if="selectedCategory === 'Мастер-классы' && (attraction as any)['Оплата']" class="payment-method" :title="(attraction as any)['Оплата']">
+              <span v-if="(attraction as any)['Оплата'] === 'наличные'">💵</span>
+              <span v-else-if="(attraction as any)['Оплата'] === 'карта'">💳</span>
+              <span v-else-if="(attraction as any)['Оплата'] === 'наличные/карта'">💵💳</span>
+            </div>
+          </div>
+
+          <!-- Facility icons in ONE horizontal line -->
+          <div class="facilities-line">
+            <!-- Working hours -->
+            <div class="facility-icon working-hours-icon" :class="{ available: (attraction as any)['Время работы'], unavailable: !(attraction as any)['Время работы'] }" :title="(attraction as any)['Время работы'] ? `Время работы: ${(attraction as any)['Время работы']}` : 'Нет информации о времени работы'">
+              <span v-if="(attraction as any)['Время работы']" class="working-hours-text">🕣 {{ (attraction as any)['Время работы'] }}</span>
+              <span v-else class="crossed">🕣</span>
+            </div>
+
+            <!-- Cuisine flag for restaurants -->
+            <div v-if="selectedCategory === 'Где поесть' && (attraction as any)['Кухня'] && (attraction as any)['Кухня'].length > 0" class="facility-icon cuisine-flag-icon" :title="(attraction as any)['Кухня'][0]">
+              {{ getCuisineFlag((attraction as any)['Кухня'][0]) }}
+            </div>
+            
+            <!-- Price indicator for restaurants -->
+            <div v-if="selectedCategory === 'Где поесть' && (attraction as any)['Средний чек']" class="facility-icon price-flag-icon" :class="getPriceClass((attraction as any)['Средний чек'])" :title="(attraction as any)['Средний чек']">
+              {{ getPriceSymbols((attraction as any)['Средний чек']) }}
+            </div>
+
+            <!-- Parking -->
+            <div class="facility-icon" :class="{ available: (attraction as any)['Парковка'], unavailable: !(attraction as any)['Парковка'] }" :title="(attraction as any)['Парковка'] ? 'Есть парковка' : 'Нет парковки'">
+              <span v-if="(attraction as any)['Парковка']">🅿️</span>
+              <span v-else class="crossed">🅿️</span>
+            </div>
+
+            <!-- Family friendly -->
+            <div class="facility-icon" :class="{ available: (attraction as any)['Семейные'], unavailable: !(attraction as any)['Семейные'] }" :title="(attraction as any)['Семейные'] ? 'Семейное место' : 'Не подходит для семей'">
+              <span v-if="(attraction as any)['Семейные']">👨‍👩‍👧‍👦</span>
+              <span v-else class="crossed">👨‍👩‍👧‍👦</span>
+            </div>
+
+            <!-- Accessibility -->
+            <div class="facility-icon" :class="{ available: (attraction as any)['Доступность'], unavailable: !(attraction as any)['Доступность'] }" :title="(attraction as any)['Доступность'] ? 'Доступно для людей с ограниченными возможностями' : 'Недоступно для людей с ограниченными возможностями'">
+              <span v-if="(attraction as any)['Доступность']">♿️</span>
+              <span v-else class="crossed">♿️</span>
+            </div>
+
+            <!-- Wi-Fi -->
+            <div class="facility-icon" :class="{ available: (attraction as any)['Wi-Fi'], unavailable: !(attraction as any)['Wi-Fi'] }" :title="(attraction as any)['Wi-Fi'] ? 'Есть Wi-Fi' : 'Нет Wi-Fi'">
+              <span v-if="(attraction as any)['Wi-Fi']">📶</span>
+              <span v-else class="crossed">📶</span>
+            </div>
+
+            <!-- Payment method -->
+            <div v-if="(attraction as any)['Оплата']" class="facility-icon payment-icon" :title="(attraction as any)['Оплата']">
+              <span v-if="(attraction as any)['Оплата'] === 'наличные'">💵</span>
+              <span v-else-if="(attraction as any)['Оплата'] === 'карта'">💳</span>
+              <span v-else-if="(attraction as any)['Оплата'] === 'наличные/карта'">💵💳</span>
+            </div>
+
+            <!-- Workshop-specific icons -->
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Инструктор'], unavailable: !(attraction as any)['Инструктор'] }" :title="(attraction as any)['Инструктор'] ? 'Есть инструктор' : 'Нет инструктора'">
+              <span v-if="(attraction as any)['Инструктор']">👨‍🏫</span>
+              <span v-else class="crossed">👨‍🏫</span>
+            </div>
+
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Сертификат'], unavailable: !(attraction as any)['Сертификат'] }" :title="(attraction as any)['Сертификат'] ? 'Выдается сертификат' : 'Сертификат не выдается'">
+              <span v-if="(attraction as any)['Сертификат']">📜</span>
+              <span v-else class="crossed">📜</span>
+            </div>
+
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Фото/видео'], unavailable: !(attraction as any)['Фото/видео'] }" :title="(attraction as any)['Фото/видео'] ? 'Можно фотографировать/снимать' : 'Фото/видео запрещено'">
+              <span v-if="(attraction as any)['Фото/видео']">📸</span>
+              <span v-else class="crossed">📸</span>
+            </div>
+
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Сменная одежда'], unavailable: !(attraction as any)['Сменная одежда'] }" :title="(attraction as any)['Сменная одежда'] ? 'Есть сменная одежда' : 'Нет сменной одежды'">
+              <span v-if="(attraction as any)['Сменная одежда']">👕</span>
+              <span v-else class="crossed">👕</span>
+            </div>
+
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Душ'], unavailable: !(attraction as any)['Душ'] }" :title="(attraction as any)['Душ'] ? 'Есть душ' : 'Нет душа'">
+              <span v-if="(attraction as any)['Душ']">🚿</span>
+              <span v-else class="crossed">🚿</span>
+            </div>
+
+            <div v-if="selectedCategory === 'Мастер-классы'" class="facility-icon" :class="{ available: (attraction as any)['Wi-Fi'], unavailable: !(attraction as any)['Wi-Fi'] }" :title="(attraction as any)['Wi-Fi'] ? 'Есть Wi-Fi' : 'Нет Wi-Fi'">
+              <span v-if="(attraction as any)['Wi-Fi']">📶</span>
+              <span v-else class="crossed">📶</span>
+            </div>
+          </div>
+        </div>
   </div>
 </div>
+
+    <div v-if="!filteredAttractions.length" class="empty-state">
+      <p>Ничего не найдено по текущим фильтрам.</p>
+      <div class="empty-actions">
+        <button class="filter-btn" @click="clearAllFilters">Сбросить все</button>
+      </div>
+    </div>
 
     <button class="back-floating-btn" @click="goBack">
   ← Назад
@@ -115,9 +226,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { allAttractions, type Attraction, citiesData } from '../Data'  // ⬅️ use shared data
+import { allAttractions, type Attraction, citiesData } from '../Data'  
 
 import FilterModal from '../components/FilterModal.vue'
 import { filterOptions } from '../filterConfig'
@@ -125,59 +236,59 @@ import { filterOptions } from '../filterConfig'
 const showFilterModal = ref(false)
 const activeFilters = ref<Record<string, any>>({})
 const searchQuery = ref('')
-const freeOnly = ref(false)
-const cheapOnly = ref(false)
-const rating4p = ref(false)
-const familyOnly = ref(false)
-const accessibleOnly = ref(false)
 const activeCategories = ref<string[]>([])
+const ratingSortOrder = ref<'asc' | 'desc'>('desc')
 
-const hasActiveFilters = computed(() =>
-  freeOnly.value || cheapOnly.value || rating4p.value || familyOnly.value || accessibleOnly.value ||
-  searchQuery.value.trim().length > 0 || activeCategories.value.length > 0
-)
+// Store filters per category to persist them
+const categoryFilters = ref<Record<string, Record<string, any>>>({})
+
 
 function toggleCategory(name: string) {
-  // Enforce SINGLE category selection
-  if (activeCategories.value.length === 1 && activeCategories.value[0] === name) {
-    // Tapping the same chip clears the selection (back to "All")
-    activeCategories.value = []
+  if (selectedCategory.value === name) {
     selectedCategory.value = '👍🏼'
+    activeCategories.value = []
   } else {
-    activeCategories.value = [name]
     selectedCategory.value = name
+    activeCategories.value = [name]
+    // Load saved filters for this category
+    activeFilters.value = categoryFilters.value[name] || {}
   }
 }
 
 function clearFilters() {
   activeCategories.value = []
+  selectedCategory.value = '👍🏼'
   searchQuery.value = ''
-  freeOnly.value = false
-  cheapOnly.value = false
-  rating4p.value = false
-  familyOnly.value = false
-  accessibleOnly.value = false
+}
+
+function clearAllFilters() {
+  clearFilters()
+  activeFilters.value = {}
+  // Clear filters for current category
+  if (selectedCategory.value !== '👍🏼') {
+    categoryFilters.value[selectedCategory.value] = {}
+  }
 }
 
 function applyFilters(newFilters: Record<string, any>) {
   activeFilters.value = newFilters
-  // Ensure the currently filtered category stays visually selected
-  const cat = singleSelectedCategory.value
-  if (cat && cat !== '👍🏼') activeCategories.value = [cat]
+  const cat = selectedCategory.value
+  if (cat && cat !== '👍🏼') {
+    activeCategories.value = [cat]
+    // Save filters for this category
+    categoryFilters.value[cat] = { ...newFilters }
+  }
   showFilterModal.value = false
 }
 
 const router = useRouter()
 const route = useRoute()
-
-// sticky header transform
 const scrollY = ref(0)
 function handleScroll() { scrollY.value = window.scrollY }
 onMounted(() => window.addEventListener('scroll', handleScroll))
 onUnmounted(() => window.removeEventListener('scroll', handleScroll))
 function goBack() { router.back() }
 
-// read :name from route and find city from shared data
 const cityParam = computed(() => String(route.params.name ?? ''))
 const city = computed(() => {
   const list = Array.isArray(citiesData.value) ? citiesData.value : []
@@ -186,21 +297,7 @@ const city = computed(() => {
 
 const selectedCategory = ref((route.query.category as string) || '👍🏼')
 const singleSelectedCategory = computed(() => {
-  if (activeCategories.value.length > 0) return activeCategories.value[0]
   return selectedCategory.value
-})
-const sortOption = ref((route.query.sort as string) || 'По дате')
-const sortAscending = ref(route.query.asc !== 'false')
-
-watch([selectedCategory, sortOption, sortAscending], () => {
-  router.replace({
-    query: {
-      ...route.query,
-      category: selectedCategory.value,
-      sort: sortOption.value,
-      asc: String(sortAscending.value),
-    },
-  })
 })
 
 
@@ -223,8 +320,8 @@ const categories = ref([
 ])
 
 function handleFilterClick() {
-  // Snap the chip selection to the current category if none selected yet
-  if (!activeCategories.value.length && selectedCategory.value && selectedCategory.value !== '👍🏼') {
+  // Ensure the currently selected category is reflected in activeCategories
+  if (selectedCategory.value && selectedCategory.value !== '👍🏼') {
     activeCategories.value = [selectedCategory.value]
   }
   if (filterOptions[selectedCategory.value]) showFilterModal.value = true
@@ -232,64 +329,94 @@ function handleFilterClick() {
 }
 
 // IMPORTANT: allAttractions is a ref → use .value
-const filteredAttractions = computed<Attraction[]>(() => {
+const quickFilteredAttractions = computed<Attraction[]>(() => {
   const source = Array.isArray(allAttractions.value) ? allAttractions.value : []
 
   // Start with full list; chips act as include filters (if none selected, keep all)
   let attractions = [...source]
-  const cats = activeCategories.value.length
-    ? activeCategories.value
-    : (selectedCategory.value === '👍🏼' ? [] : [selectedCategory.value])
-
-  if (cats.length > 0) {
-    attractions = attractions.filter(a => cats.includes(a.category))
+  
+  // Filter by selected category
+  if (selectedCategory.value !== '👍🏼') {
+    attractions = attractions.filter(a => a.categories && a.categories.includes(selectedCategory.value))
   }
 
-  if (freeOnly.value) {
-    attractions = attractions.filter(a => a.price === 0)
-  }
-  if (cheapOnly.value) {
-    attractions = attractions.filter(a => typeof a.price === 'number' && a.price > 0 && a.price < 1000)
-  }
-  if (rating4p.value) {
-    attractions = attractions.filter(a => (a.rating || 0) >= 4)
-  }
-  if (familyOnly.value) {
-    attractions = attractions.filter(a => a.familyFriendly === true)
-  }
-  if (accessibleOnly.value) {
-    attractions = attractions.filter(a => a.accessible === true)
-  }
+  // Quick filters removed - moved to advanced filters
 
   const q = searchQuery.value.trim().toLowerCase()
   if (q) {
     attractions = attractions.filter(a => (a.name || '').toLowerCase().includes(q))
   }
 
-  // Apply advanced modal filters (single category at a time)
-  const advCat = activeCategories.value[0] || (selectedCategory.value !== '👍🏼' ? selectedCategory.value : '')
+  return attractions
+})
+
+const filteredAttractions = computed<Attraction[]>(() => {
+  let attractions = [...quickFilteredAttractions.value]
+  // Apply advanced modal filters (single category)
+  const advCat = selectedCategory.value !== '👍🏼' ? selectedCategory.value : ''
   const adv = activeFilters.value || {}
   if (advCat) {
     attractions = attractions.filter(a => matchesAdvanced(a, advCat, adv))
   }
 
-  if (sortOption.value === 'По дате') {
-    attractions.sort((a, b) =>
-      sortAscending.value
-        ? new Date(a.date ?? 0).getTime() - new Date(b.date ?? 0).getTime()
-        : new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
-    )
-  } else if (sortOption.value === 'По популярности') {
-    attractions.sort((a, b) =>
-      sortAscending.value
-        ? (a.checkedIn || 0) - (b.checkedIn || 0)
-        : (b.checkedIn || 0) - (a.checkedIn || 0)
-    )
-  } else if (sortOption.value === 'Бесплатные') {
-    attractions = attractions.filter(a => a.price === 0)
+  // Apply sorting - default to rating descending if no sorting is set
+  const sortBy = activeFilters.value?.sortBy || 'rating'
+  const sortOrder = activeFilters.value?.sortOrder || 'desc'
+  
+  if (sortBy === 'rating') {
+    attractions.sort((a, b) => {
+      const ratingA = a.rating || 0
+      const ratingB = b.rating || 0
+      if (sortOrder === 'desc') {
+        return ratingB - ratingA
+      } else {
+        return ratingA - ratingB
+      }
+    })
   }
 
   return attractions
+})
+
+const contextChips = computed(() => {
+  const chips: { key: string; label: string; clear: () => void }[] = []
+  
+  if (selectedCategory.value !== '👍🏼') {
+    chips.push({ 
+      key: 'cat', 
+      label: selectedCategory.value, 
+      clear: () => { selectedCategory.value = '👍🏼'; activeCategories.value = [] } 
+    })
+  }
+  
+  if (searchQuery.value) {
+    chips.push({ 
+      key: 'q', 
+      label: `Поиск: ${searchQuery.value}`, 
+      clear: () => (searchQuery.value = '') 
+    })
+  }
+  
+  Object.entries(activeFilters.value || {}).forEach(([k, v]) => {
+    // Skip sortBy and sortOrder as they're handled by the rating sort button
+    if (k === 'sortBy' || k === 'sortOrder') return
+    
+    if (Array.isArray(v) && v.length) {
+      chips.push({ 
+        key: `adv-${k}`, 
+        label: `${getFilterLabel(k)}: ${v.join(', ')}`, 
+        clear: () => (activeFilters.value[k] = []) 
+      })
+    } else if (typeof v === 'string' && v) {
+      chips.push({ 
+        key: `adv-${k}`, 
+        label: `${getFilterLabel(k)}: ${getFilterValueLabel(k, v)}`, 
+        clear: () => (activeFilters.value[k] = '') 
+      })
+    }
+  })
+  
+  return chips
 })
 
 function matchesAdvanced(a: Attraction, category: string, f: Record<string, any>): boolean {
@@ -304,78 +431,298 @@ function matchesAdvanced(a: Attraction, category: string, f: Record<string, any>
 
   switch (category) {
     case 'Где поесть': {
-      if (Array.isArray(f.cuisine) && f.cuisine.length) {
-        const have = (a.cuisine || []).map(lc)
-        const want = f.cuisine.map(lc)
+      if (Array.isArray(f['Кухня']) && f['Кухня'].length) {
+        const have = (a['Кухня'] || []).map(lc)
+        const want = f['Кухня'].map(lc)
         if (!want.some((w: string) => have.includes(w))) return false
       }
-      if (f.priceRange && !inRange(a.price, f.priceRange)) return false
-      if (f.placeType && lc(f.placeType) && lc(a.placeType) !== lc(f.placeType)) return false
-      if (f.canReserve) {
-        const need = isYes(f.canReserve)
-        if ((a.canReserve ?? false) !== need) return false
+      if (f['Средний чек'] && lc(a['Средний чек']) !== lc(f['Средний чек'])) return false
+      if (f['Тип заведения'] && lc(f['Тип заведения']) && lc(a['Тип заведения']) !== lc(f['Тип заведения'])) return false
+      if (f['Завтраки']) {
+        const need = isYes(f['Завтраки'])
+        if (((a as any)['Завтраки'] ?? false) !== need) return false
       }
-      // time filter omitted for simplicity
+      if (f['Бронирование']) {
+        const need = isYes(f['Бронирование'])
+        if ((a['Бронирование'] ?? false) !== need) return false
+      }
+      if (f['Открыто сейчас']) {
+        const need = isYes(f['Открыто сейчас'])
+        // This would need to be implemented based on current time vs working hours
+        // For now, we'll assume it's available if working hours exist
+        const hasWorkingHours = !!(a['Время работы'])
+        if (hasWorkingHours !== need) return false
+      }
       return true
     }
     case 'Экскурсии': {
-      if (f.priceRange && !inRange(a.price, f.priceRange)) return false
-      if (f.excursionType && lc(a.excursionType) !== lc(f.excursionType)) return false
-      if (f.transportType && lc(a.transportType) !== lc(f.transportType)) return false
-      if (f.duration && lc(a.duration) !== lc(f.duration)) return false
-      if (f.accessible && (a.accessible ?? false) !== isYes(f.accessible)) return false
-      if (f.familyFriendly && (a.familyFriendly ?? false) !== isYes(f.familyFriendly)) return false
-      if (f.season && lc(a.season) !== lc(f.season)) return false
-      if (f.difficulty && lc(a.difficulty) !== lc(f.difficulty)) return false
+      if (f['Ценовой диапазон'] && !inRange(a.price, f['Ценовой диапазон'])) return false
+      if (f['Тип экскурсии'] && lc(a['Тип экскурсии']) !== lc(f['Тип экскурсии'])) return false
+      if (f['Тип транспорта'] && lc(a['Тип транспорта']) !== lc(f['Тип транспорта'])) return false
+      if (f['Продолжительность'] && lc(a['Длительность']) !== lc(f['Продолжительность'])) return false
+      if (f['Доступность'] && (a['Доступность'] ?? false) !== isYes(f['Доступность'])) return false
+      if (f['Сезон'] && lc(a['Сезон']) !== lc(f['Сезон'])) return false
       return true
     }
     case 'Размещение': {
-      if (f.stars && lc(String(a.stars)) !== lc(String(f.stars).replace('★',''))) return false
-      if (f.priceRange && !inRange(a.price, f.priceRange)) return false
-      if (Array.isArray(f.amenities) && f.amenities.length) {
-        const have = (a.amenities || []).map(lc)
-        const want = f.amenities.map(lc)
+      if (f['Звезды'] && lc(String(a['Звезды'])) !== lc(String(f['Звезды']).replace('★',''))) return false
+      if (f['Ценовой диапазон'] && !inRange(a.price, f['Ценовой диапазон'])) return false
+      if (Array.isArray(f['Удобства']) && f['Удобства'].length) {
+        const have = (a['Удобства'] || []).map(lc)
+        const want = f['Удобства'].map(lc)
         if (!want.every((w: string) => have.includes(w))) return false
       }
-      if (f.familyFriendly && (a.familyFriendly ?? false) !== isYes(f.familyFriendly)) return false
-      if (f.dogFriendly && (a.dogFriendly ?? false) !== isYes(f.dogFriendly)) return false
+      if (f['Семейные'] && (a['Семейные'] ?? false) !== isYes(f['Семейные'])) return false
+      if (f['С животными'] && (a['С животными'] ?? false) !== isYes(f['С животными'])) return false
       return true
     }
     default: {
       // Generic pass-through for other categories using simple mappings
-      if (f.ticketPrice && !inRange(a.ticketPrice, f.ticketPrice)) return false
-      if (f.freeDay && (a.freeDay ?? false) !== isYes(f.freeDay)) return false
-      if (f.accessible && (a.accessible ?? false) !== isYes(f.accessible)) return false
-      if (Array.isArray(f.amenities) && f.amenities.length) {
-        const have = (a.amenities || []).map(lc)
-        const want = f.amenities.map(lc)
+      if (f['Цена билета'] && !inRange(a['Цена билета'], f['Цена билета'])) return false
+      if (f['Бесплатные дни'] && (a['Бесплатные дни'] ?? false) !== isYes(f['Бесплатные дни'])) return false
+      if (f['Доступность'] && (a['Доступность'] ?? false) !== isYes(f['Доступность'])) return false
+      if (Array.isArray(f['Инфраструктура']) && f['Инфраструктура'].length) {
+        const have = (a['Инфраструктура'] || []).map(lc)
+        const want = f['Инфраструктура'].map(lc)
         if (!want.every((w: string) => have.includes(w))) return false
       }
-      if (f.genre && lc(a.genre) !== lc(f.genre)) return false
-      if (f.period && lc(a.period) !== lc(f.period)) return false
-      if (f.indoorOutdoor) {
-        const needIn = lc(f.indoorOutdoor) === 'indoor'
+      if (f['Жанр'] && lc(a['Жанр']) !== lc(f['Жанр'])) return false
+      if (f['Период'] && lc(a['Период']) !== lc(f['Период'])) return false
+      if (f['Формат']) {
+        const needIn = lc(f['Формат']) === 'в помещении'
         const ok = needIn ? a.indoor === true : a.outdoor === true
         if (!ok) return false
       }
-      if (f.minAge && !inRange(a.minAge, f.minAge)) return false
-      if (f.gearIncluded && (a.gearIncluded ?? false) !== isYes(f.gearIncluded)) return false
+      if (f['Мин возраст'] && !inRange(a['Мин возраст'], f['Мин возраст'])) return false
+      if (f['Снаряжение включено'] && (a['Снаряжение включено'] ?? false) !== isYes(f['Снаряжение включено'])) return false
       return true
     }
   }
 }
 
 function goToAttraction(attraction: Attraction) {
-  router.push({ name: 'event-detail', params: { id: attraction.id } })
+  router.push({ 
+    name: 'city-event-detail', 
+    params: { 
+      cityName: cityParam.value, 
+      eventId: attraction.id 
+    } 
+  })
 }
 
-function formatDateTimeRu(dateStr?: string) {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const day = date.getDate()
-  const month = new Intl.DateTimeFormat('ru-RU', { month: 'long' }).format(date)
-  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', hour12: false })
-  return `${day} ${month} ${time}`
+function getCuisineFlag(cuisine: string): string {
+  const flagMap: Record<string, string> = {
+    'Русская': '🇷🇺',
+    'Европейская': '🇪🇺',
+    'Итальянская': '🇮🇹',
+    'Японская': '🇯🇵',
+    'Китайская': '🇨🇳',
+    'Индийская': '🇮🇳',
+    'Мексиканская': '🇲🇽',
+    'Тайская': '🇹🇭',
+    'Корейская': '🇰🇷',
+    'Французская': '🇫🇷',
+    'Немецкая': '🇩🇪',
+    'Испанская': '🇪🇸',
+    'Греческая': '🇬🇷',
+    'Турецкая': '🇹🇷',
+    'Арабская': '🇸🇦',
+    'Балтийская': '🌊',
+    'Американская': '🇺🇸',
+    'Вегетарианская': '🥬',
+    'Веганская': '🌱',
+    'Фастфуд': '🍔',
+    'Морепродукты': '🦐',
+    'Стейк-хаус': '🥩',
+    'Азиатская': '🍜'
+  }
+  return flagMap[cuisine] || '🍽️'
+}
+
+function getPriceSymbols(avgCheck: string): string {
+  const price = avgCheck.toLowerCase()
+  if (price.includes('300-800') || price.includes('бюджетные') || price.includes('дешево') || price.includes('недорого')) {
+    return '$'
+  } else if (price.includes('800-1500') || price.includes('средние') || price.includes('средне') || price.includes('нормально')) {
+    return '$$'
+  } else if (price.includes('1500-2500') || price.includes('дорогие') || price.includes('дорого') || price.includes('высоко')) {
+    return '$$$'
+  } else if (price.includes('2500+') || price.includes('премиум') || price.includes('очень дорого')) {
+    return '$$$$'
+  }
+  return '$$'
+}
+
+function getPriceClass(avgCheck: string): string {
+  const price = avgCheck.toLowerCase()
+  if (price.includes('300-800') || price.includes('бюджетные') || price.includes('дешево') || price.includes('недорого')) {
+    return 'price-cheap'
+  } else if (price.includes('800-1500') || price.includes('средние') || price.includes('средне') || price.includes('нормально')) {
+    return 'price-affordable'
+  } else if (price.includes('1500-2500') || price.includes('дорогие') || price.includes('дорого') || price.includes('высоко')) {
+    return 'price-expensive'
+  } else if (price.includes('2500+') || price.includes('премиум') || price.includes('очень дорого')) {
+    return 'price-premium'
+  }
+  return 'price-affordable'
+}
+
+
+
+function getResultsCountText(count: number): string {
+  if (count === 0) {
+    return 'Ничего не найдено';
+  } else if (count === 1) {
+    return '1 место найдено';
+  } else if (count >= 2 && count <= 4) {
+    return `${count} места найдено`;
+  } else {
+    return `${count} мест найдено`;
+  }
+}
+
+function getReviewsText(count: number): string {
+  if (count === 1) {
+    return '1 отзыв';
+  } else if (count >= 2 && count <= 4) {
+    return `${count} отзыва`;
+  } else if (count >= 5 && count <= 20) {
+    return `${count} отзывов`;
+  } else {
+    const lastDigit = count % 10;
+    const lastTwoDigits = count % 100;
+    
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+      return `${count} отзывов`;
+    } else if (lastDigit === 1) {
+      return `${count} отзыв`;
+    } else if (lastDigit >= 2 && lastDigit <= 4) {
+      return `${count} отзыва`;
+    } else {
+      return `${count} отзывов`;
+    }
+  }
+}
+
+function toggleRatingSort() {
+  ratingSortOrder.value = ratingSortOrder.value === 'desc' ? 'asc' : 'desc'
+  // Update active filters to trigger re-sorting
+  activeFilters.value = { ...activeFilters.value, sortBy: 'rating', sortOrder: ratingSortOrder.value }
+}
+
+function getRatingSortTitle(): string {
+  return ratingSortOrder.value === 'desc' ? 'Сортировка по рейтингу (по убыванию)' : 'Сортировка по рейтингу (по возрастанию)'
+}
+
+function getRatingSortIcon(): string {
+  return ratingSortOrder.value === 'desc' ? '↓' : '↑'
+}
+
+function getStarFilled(starIndex: number): boolean {
+  if (ratingSortOrder.value === 'desc') {
+    // Descending: all 5 stars filled (5,4,3,2,1)
+    return true
+  } else {
+    // Ascending: only 1 star filled (1,2,3,4,5)
+    return starIndex === 1
+  }
+}
+
+function getFilterLabel(key: string): string {
+  const labelMap: Record<string, string> = {
+    'Кухня': 'Кухня',
+    'Средний чек': 'Средний чек',
+    'Тип заведения': 'Тип заведения',
+    'Завтраки': 'Завтраки',
+    'Бронирование': 'Бронирование',
+    'Открыто сейчас': 'Открыто сейчас',
+    'Ценовой диапазон': 'Цена',
+    'Тип экскурсии': 'Тип экскурсии',
+    'Тип транспорта': 'Тип транспорта',
+    'Продолжительность': 'Продолжительность',
+    'Доступность': 'Доступность',
+
+    'Сезон': 'Сезон',
+
+    'Звезды': 'Звезды',
+    'Удобства': 'Удобства',
+    'С животными': 'С животными',
+    'Период': 'Период',
+    'Цена билета': 'Цена билета',
+    'Бесплатные дни': 'Бесплатные дни',
+    'Инфраструктура': 'Инфраструктура',
+    'Жанр': 'Жанр',
+    'Время начала': 'Время начала',
+    'Время сеанса': 'Время сеанса',
+    'Материалы включены': 'Материалы включены',
+    'Мин возраст': 'Мин. возраст',
+    'Формат': 'Формат',
+    'Снаряжение включено': 'Снаряжение включено',
+    'Тематика': 'Тематика',
+    'Тип': 'Тип',
+    'Стоимость': 'Стоимость',
+    'Для детей': 'Для детей',
+    'Бюджет': 'Бюджет',
+    'С собаками': 'С собаками'
+  }
+  return labelMap[key] || key
+}
+
+function getFilterValueLabel(key: string, value: string): string {
+  const valueMap: Record<string, Record<string, string>> = {
+    'Средний чек': {
+      '300-800': '300-800 ₽',
+      '800-1500': '800-1500 ₽',
+      '1500-2500': '1500-2500 ₽',
+      '2500+': '2500+ ₽',
+      'бюджетные': '300-800 ₽',
+      'средние': '800-1500 ₽',
+      'дорогие': '1500-2500 ₽',
+      'премиум': '2500+ ₽'
+    },
+    'Бронирование': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Завтраки': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Доступность': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Семейные': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'С животными': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Бесплатные дни': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Снаряжение включено': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Материалы включены': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Собаками': {
+      'да': 'Есть',
+      'нет': 'Нет'
+    },
+    'Формат': {
+      'в помещении': 'В помещении',
+      'на улице': 'На улице'
+    }
+  }
+  
+  return valueMap[key]?.[value] || value
 }
 </script>
 
@@ -399,12 +746,10 @@ function formatDateTimeRu(dateStr?: string) {
 }
 
 .city-hero-overlay {
-  background: rgba(255, 255, 255, 0.102);
-  border: double white 4px;
+  background: transparent;
   padding: 0.6rem 1.3rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  backdrop-filter: blur(1.5px);
   text-align: center;
 }
 
@@ -413,6 +758,19 @@ function formatDateTimeRu(dateStr?: string) {
   font-size: 1.4rem;
   font-weight: 600;
   background-color: transparent;
+  margin: 0;
+}
+
+.category-title {
+  color: #fff;
+  font-size: clamp(1rem, 4vw, 1.2rem);
+  font-weight: 500;
+  background-color: transparent;
+  margin: 0.5rem 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90vw;
 }
 
 .city-description {
@@ -423,11 +781,20 @@ function formatDateTimeRu(dateStr?: string) {
   color: #333;
 }
 
-/* CATEGORY BAR */
+.results-count {
+  text-align: center;
+  padding: 0.5rem 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 .category-scroll {
   display: flex;
   overflow-x: auto;
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem 1rem;
   gap: 0.5rem;
   margin-top: 0;
 }
@@ -450,59 +817,10 @@ function formatDateTimeRu(dateStr?: string) {
   font-weight: bold;
 }
 
-/* SORT BAR */
-.sort-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.select-wrapper {
-  position: relative;
-}
-
-.sort-bar select {
-  appearance: none;
-  background: rgba(225, 245, 254, 255);
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem 2rem 0.5rem 0.8rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.select-arrow {
-  position: absolute;
-  right: 0.8rem;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  font-size: 0.7rem;
-  color: #555;
-}
-
-.sort-order-toggle {
-  background: rgba(225, 245, 254, 255);
-  border: none;
-  border-radius: 8px;
-  padding: 0.45rem 0.8rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s ease;
-  font-weight: bold;
-}
-
-/* ATTRACTION CARDS */
 .attraction-grid {
   padding: 1rem 0;
 }
 
-/* Horizontal scrolling for '👍🏼' */
 .attraction-grid.horizontal {
   display: flex;
   flex-direction: row;
@@ -528,7 +846,6 @@ function formatDateTimeRu(dateStr?: string) {
   margin-right: 1rem;
 }
 
-/* Responsive vertical grid for other categories */
 .attraction-grid.vertical {
   display: grid;
   grid-template-columns: 1fr;
@@ -554,7 +871,6 @@ function formatDateTimeRu(dateStr?: string) {
   }
 }
 
-/* Card styles */
 .attraction-card {
   border-radius: 12px;
   overflow: hidden;
@@ -593,10 +909,10 @@ function formatDateTimeRu(dateStr?: string) {
 }
 
 .card-content {
-  padding: 0.8rem;
+  padding: 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.2rem;
   font-size: 0.95rem;
   color: #333;
 }
@@ -620,6 +936,203 @@ function formatDateTimeRu(dateStr?: string) {
 .card-content h3 {
   margin: 0 0 0.4rem 0;
   font-size: 1rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+  gap: 0.5rem;
+}
+
+.attraction-name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+  line-height: 1.3;
+  min-width: 0;
+}
+
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.stars {
+  display: flex;
+  gap: 1px;
+}
+
+.star {
+  font-size: 0.8rem;
+  opacity: 0.3;
+}
+
+.star.filled {
+  opacity: 1;
+}
+
+.rating-text {
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.participants {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.price-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+}
+
+.price {
+  font-weight: 600;
+  color: #059669;
+}
+
+.price.free {
+  color: #059669;
+}
+
+.payment-method {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.payment-icon {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+.facilities-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  margin-top: 0.1rem;
+}
+
+.facility-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  font-size: 1.6rem;
+  border: 2px solid #9ca3af;
+  background: #f8fafc;
+  position: relative;
+  cursor: help;
+  color: #1f2937;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.facility-icon.available {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+.facility-icon.unavailable {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #6b7280;
+  opacity: 0.7;
+}
+
+.facility-icon.crossed {
+  position: relative;
+}
+
+.crossed::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120%;
+  height: 2px;
+  background: #ef4444;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  border-radius: 1px;
+}
+
+.cuisine-flag-icon {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+.price-flag-icon {
+  background: #f8fafc;
+  border-color: #9ca3af;
+  color: #1f2937;
+  font-weight: 600;
+  min-width: 48px;
+  width: auto;
+  padding: 0 0.5rem;
+}
+
+/* Working hours responsive styling */
+.working-hours-icon {
+  min-width: auto !important;
+  width: auto !important;
+  padding: 0 0.5rem !important;
+  white-space: nowrap;
+}
+
+.working-hours-text {
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .working-hours-icon {
+    padding: 0 0.25rem !important;
+  }
+  
+  .working-hours-text {
+    font-size: 0.8rem;
+  }
+  
+  .facilities-line {
+    gap: 0.1rem;
+  }
+  
+  .facility-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .working-hours-text {
+    font-size: 0.75rem;
+  }
+  
+  .facility-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.3rem;
+  }
 }
 
 .back-floating-btn {
@@ -664,16 +1177,18 @@ function formatDateTimeRu(dateStr?: string) {
   z-index: 5;
   background: transparent;
   border-bottom: 1px solid rgba(0,0,0,0.06);
-  padding-bottom: 0.25rem;
+  padding: 0.25rem 0.3rem 0.5rem; 
 }
 
 .category-scroll {
   display: flex;
   overflow-x: auto;
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem 0.5rem; /* added horizontal padding */
   gap: 0.5rem;
   -ms-overflow-style: none; /* IE/Edge */
   scrollbar-width: none; /* Firefox */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
 }
 .category-scroll::-webkit-scrollbar { display: none; }
 
@@ -695,16 +1210,133 @@ function formatDateTimeRu(dateStr?: string) {
 .chip .label { white-space: nowrap; font-weight: 600; }
 .chip.active { background: #f3f7ff; border-color: rgba(37,99,235,0.35); box-shadow: 0 4px 12px rgba(37,99,235,0.15); transform: translateY(-1px); }
 
-.quick-filters { display: flex; align-items: center; gap: 0.5rem; margin-left: auto; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; -ms-overflow-style: none; scrollbar-width: none; }
-.quick-filters::-webkit-scrollbar { display: none; }
-.search-input { border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 0.45rem 0.6rem; min-width: 130px; width: 180px;margin-left: 0.5rem; }
-.toggle { display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(225,245,254,255); border-radius: 8px; padding: 0.35rem 0.6rem; }
-.clear-btn { background: transparent; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 0.35rem 0.6rem; }
+.search-section { 
+  display: flex; 
+  align-items: center; 
+  gap: 0.5rem; 
+  width: 90%; 
+  margin: 0 auto; 
+  padding: 0 1rem; 
+}
+.search-input { 
+  border: 1px solid rgba(0,0,0,0.12); 
+  border-radius: 8px; 
+  padding: 0.45rem 0.4rem; 
+  flex: 1;
+  min-width: 200px;
+  margin-left: 0.5rem; 
+}
+
+.advanced-filter-btn {
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  padding: 0.45rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  min-width: 40px;
+  height: 40px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.advanced-filter-btn:hover {
+  background: #e2e8f0;
+  border-color: rgba(0,0,0,0.2);
+}
+
+.rating-sort-btn {
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  transition: all 0.2s ease;
+  min-width: 60px;
+  height: 40px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 1px;
+}
+
+.rating-stars .star {
+  font-size: 10px;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.rating-stars .star.filled {
+  opacity: 1;
+}
+
+.sort-arrow {
+  font-size: 12px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.rating-sort-btn:hover {
+  background: #e2e8f0;
+  border-color: rgba(0,0,0,0.2);
+}
+/* .toggle { display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(225,245,254,255); border-radius: 8px; padding: 0.35rem 0.6rem; } */
+.clear-btn { background: transparent; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 0.35rem 0.6rem; white-space: nowrap; }
 .result-count { font-size: 0.86rem; opacity: 0.75; }
 
-/* Make the filters row responsive and prevent horizontal overflow */
-.filters-sticky .quick-filters > * { flex: 0 0 auto; scroll-snap-align: start; }
+/* Make the search section responsive */
+.filters-sticky .search-section > * { flex: 0 0 auto; }
 
-@media (max-width: 420px) { .result-count { display: none; } }
+/* Responsive search section */
+@media (max-width: 1200px) {
+  .search-section {
+    width: 95%;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-section {
+    width: 98%;
+    padding: 0 0.5rem;
+  }
+  
+  .search-input {
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-section {
+    width: 100%;
+    padding: 0 0.25rem;
+  }
+  
+  .search-input {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 420px) { 
+  .result-count { display: none; } 
+}
+
+.active-chips { display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 1rem; flex-wrap: nowrap; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; }
+.active-chips::-webkit-scrollbar { display: none; }
+.chips-title { font-size: 0.85rem; opacity: 0.7; margin-right: 0.25rem; }
+.xchip { border: 1px solid rgba(0,0,0,0.1); background: #f5f7fb; border-radius: 999px; padding: 0.3rem 0.6rem; font-size: 0.88rem; }
+.xchip.clear-all { background: #fff0f0; border-color: #ffd9d9; }
+.empty-state { text-align: center; padding: 1rem; color: #555; }
+.empty-actions { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem; }
 
 </style>

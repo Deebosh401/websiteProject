@@ -24,6 +24,7 @@
         :key="itemKeyValue(item, i)"
         class="card"
         :class="{ 'afisha-card': title === 'Афиша событий' }"
+        @click="debugClick(item)"
         @touchstart.passive
         @touchmove.passive
         @touchend.passive
@@ -48,7 +49,7 @@
         </template>
 
         <template v-if="title === 'Афиша событий' && isAttraction(item)">
-      <div class="event-info compact">
+      <div class="event-info compact" @click="debugClick(item)" style="cursor: pointer; pointer-events: auto;">
         <h4 class="event-name">{{ getName(item) }}</h4>
         <p v-if="item.date" class="event-date">{{ formatDate(item.date) }}</p>
         <p v-if="item.location" class="event-location">{{ item.location }}</p>
@@ -56,7 +57,7 @@
     </template>
 
     <template v-else-if="isPopularSection && isAttraction(item)">
-  <div class="popular-compact">
+  <div class="popular-compact" @click="debugClick(item)" style="cursor: pointer; pointer-events: auto;">
     <div class="rating-badge">
       ⭐ {{ formatRating(item.rating) }}
       <span v-if="item.checkedIn" class="sep">•</span>
@@ -66,7 +67,7 @@
     <div class="popular-bottom2">
       <div class="popular-name">{{ getName(item) }}</div>
       <div class="popular-chips">
-        <span v-if="item.category" class="chip">{{ item.category }}</span>
+        <span v-if="item.categories && item.categories.length" class="chip">{{ item.categories[0] }}</span>
         <span v-if="priceLabel(item)" class="chip strong">{{ priceLabel(item) }}</span>
       </div>
     </div>
@@ -75,14 +76,9 @@
 
         <template v-else>
           <div class="overlay-container">
-            <button
-              class="overlay-button"
-              @click="emit('itemClick', item)"
-              role="button"
-              :aria-label="`Открыть ${getName(item)}`"
-            >
+            <div class="overlay-content">
               {{ getName(item) }}
-            </button>
+            </div>
           </div>
         </template>
       </div>
@@ -91,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import type { Attraction, CarouselInfo } from '../../Data'
 
 type Item = CarouselInfo | Attraction
@@ -109,10 +105,16 @@ const emit = defineEmits<{
   (e: 'allClick'): void
 }>()
 
+// Debug function to log clicks
+function debugClick(item: Item) {
+  console.log('Card clicked:', item)
+  emit('itemClick', item)
+}
+
 const isAfisha = computed(() => props.title === 'Афиша событий')
 
 function isAttraction(item: Item): item is Attraction {
-  return 'category' in item || 'date' in item || 'location' in item
+  return 'categories' in item || 'date' in item || 'location' in item
 }
 function getImage(item: Item): string {
   return (item as Attraction).image ?? (item as CarouselInfo).image ?? ''
@@ -145,7 +147,8 @@ function formatRating(r?: number) {
 }
 
 function isRestaurant(item: Item): boolean {
-  const cat = (item as any)?.category?.toString().toLowerCase() || ''
+  const cats = (item as any)?.categories || []
+  const cat = cats.join(' ').toLowerCase()
   const type = (item as any)?.type?.toString().toLowerCase() || ''
   return cat.includes('есть') || cat.includes('ресторан') || type === 'restaurant'
 }
@@ -390,6 +393,24 @@ onUnmounted(() => {
 })
 
 
+// Reset to the first page when the city carousel's items change
+watch(() => props.items, () => {
+  if (props.title === 'Города') {
+    nextTick(() => {
+      const el = carouselRef.value
+      if (!el) return
+      currentPage.value = 0
+      try {
+        el.scrollTo({ left: 0 })
+      } catch (_) {
+        // fallback
+        ;(el as any).scrollLeft = 0
+      }
+    })
+  }
+})
+
+
 </script>
 
 <style scoped>
@@ -398,7 +419,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 0 3vw;
-  margin-top: 1rem;
+  margin-top: 0;
   margin-bottom: 0.5rem;
 }
 .cities-list {
@@ -451,8 +472,7 @@ onUnmounted(() => {
   gap: 2vw;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding: 0.1rem 2vw 1rem 2vw;
-  /* Allow both axes so vertical scroll always works; we'll decide in JS */
+  padding: 0.1rem 2vw 0.5rem 2vw;
   touch-action: pan-y pan-x;
   scroll-padding-left: 2vw;
   -webkit-overflow-scrolling: touch;
@@ -470,11 +490,12 @@ onUnmounted(() => {
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   touch-action: pan-y;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 .card:hover {
-  box-shadow: 0 6px 20px rgba(255, 140, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
-  transition: transform 0.3s ease;
 }
 
 .scroll-carousel.afisha-mode .card {
@@ -513,6 +534,15 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   filter: brightness(1.1);
 }
 
+.card:hover .overlay-container {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0.55) 60%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
 .overlay-container {
   position: absolute;
   bottom: 0;
@@ -527,6 +557,26 @@ video::-webkit-media-controls-enclosure { display: none !important; }
   );
   pointer-events: none;
   border-radius: 4px 4px 0 0;
+}
+
+.overlay-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 4px 4px 0 0;
+  font-weight: 600;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+  padding-bottom: 8px;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .overlay-button {

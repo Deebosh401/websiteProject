@@ -41,6 +41,6 @@ const cities = ref([
 ])
 
 function goToCity(city) {
-  console.log('Navigating to', city.name)
+  router.push({ name: 'city-detail', params: { name: city.name } })
 }
 </script>

@@ -6,5 +6,17 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [
     vue(),
-    tailwindcss()],
+    tailwindcss()
+  ],
+
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['vue', 'vue-router'],
+          maplibre: ['maplibre-gl']
+        }
+      }
+    }
+  }
 })

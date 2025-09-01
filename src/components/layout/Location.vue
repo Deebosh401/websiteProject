@@ -30,7 +30,7 @@
         v-for="(city, index) in filteredCities"
         :key="index"
         @click="selectCity(city)"
-        :class="{ selected: city === selectedCity }"
+        :class="{ selected: city === selectedCity, regional: city === regionalCenter }"
       >
         {{ city }}
       </li>
@@ -42,25 +42,24 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { fetchRegionCities, type RegionCity } from '../../Data'
 
 const selectedCity = ref('Город')
 const showCityDropdown = ref(false)
 const searchQuery = ref('')
 
-const cities = ref([
-  'Москва',
-  'Санкт-Петербург',
-  'Калининград',
-  'Сочи',
-  'Казань',
-  'Новосибирск',
-  'Екатеринбург',
-  'Нижний Новгород',
-  'Владивосток',
-])
+const regionalCenter = 'Калининград'
+const allCities = ref<RegionCity[]>([])
+
+const orderedCities = computed(() => {
+  const byName = [...allCities.value].sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  const center = byName.find(c => c.isRegionalCenter)
+  const others = byName.filter(c => !c.isRegionalCenter)
+  return center ? [center.name, ...others.map(c => c.name)] : byName.map(c => c.name)
+})
 
 const filteredCities = computed(() =>
-  cities.value.filter((city) =>
+  orderedCities.value.filter((city) =>
     city.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 )
@@ -73,6 +72,7 @@ const selectCity = (city: string) => {
   selectedCity.value = city
   showCityDropdown.value = false
   localStorage.setItem('selectedCity', city)
+  window.dispatchEvent(new CustomEvent('city:changed', { detail: city }))
 }
 
 const handleClickOutside = (e: MouseEvent) => {
@@ -89,6 +89,15 @@ onMounted(() => {
   if (savedCity) {
     selectedCity.value = savedCity
   }
+
+  // reflect external changes (other tabs / code)
+  window.addEventListener('city:changed', (e: any) => {
+    const city = e?.detail
+    if (city) selectedCity.value = city
+  })
+
+  // Load cities from catalog
+  fetchRegionCities().then((list) => { allCities.value = list || [] })
 })
 
 onBeforeUnmount(() => {
@@ -106,8 +115,8 @@ onBeforeUnmount(() => {
 
 .location-selector {
   position: relative;
-  margin-left: 0.25rem;
-  font-size: 0.8rem;
+  margin-left: 0;
+  font-size: 0.75rem;
   z-index: 1000;
 }
 
@@ -116,11 +125,12 @@ onBeforeUnmount(() => {
   align-items: center;
   background: linear-gradient(135deg, #eaf3ff, #e2f6ff);
   border-radius: 999px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.5rem;
   cursor: pointer;
-  gap: 0.35rem;
+  gap: 0.3rem;
   transition: background-color 0.2s ease, box-shadow .2s ease, transform .15s ease;
   border: 1px solid #dbeafe;
+  
 }
 
 .location-button:hover {
@@ -181,6 +191,14 @@ onBeforeUnmount(() => {
   font-weight: bold;
 }
 
+.city-dropdown li.regional {
+  font-weight: 700;
+}
+
+.city-dropdown li.selected.regional {
+  font-weight: 900;
+}
+
 @keyframes pinPop {
   0% {
     transform: scale(0.5) translateY(-20px);
@@ -217,6 +235,260 @@ onBeforeUnmount(() => {
 
 .location-button:active .animated-pin {
   animation: pinBounce 0.3s ease;
+}
+
+.geo-confirm {
+  position: absolute;
+  top: 115%;
+  left: 0;
+  width: max-content;
+  max-width: 280px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+  padding: 0.6rem 0.7rem;
+  font-size: 0.9rem;
+}
+.geo-actions { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+.geo-actions button { border: 1px solid #dbeafe; background: #eff6ff; border-radius: 8px; padding: 0.3rem 0.6rem; cursor: pointer; }
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .location-selector {
+    font-size: 0.875rem;
+  }
+  
+  .location-button {
+    padding: 0.5rem 0.75rem;
+    gap: 0.4rem;
+  }
+  
+  .location-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 0.4rem;
+  }
+  
+  .city-dropdown {
+    width: 240px;
+    max-height: 300px;
+    padding: 0.75rem 0;
+  }
+  
+  .search-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .city-dropdown li {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+  
+  .geo-confirm {
+    max-width: 320px;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .geo-actions button {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .location-selector {
+    font-size: 1rem;
+  }
+  
+  .location-button {
+    padding: 0.6rem 0.875rem;
+    gap: 0.5rem;
+  }
+  
+  .location-icon {
+    width: 26px;
+    height: 26px;
+    margin-right: 0.45rem;
+  }
+  
+  .city-dropdown {
+    width: 280px;
+    max-height: 350px;
+    padding: 1rem 0;
+  }
+  
+  .search-input {
+    padding: 0.6rem 0.875rem;
+    font-size: 1.1rem;
+  }
+  
+  .city-dropdown li {
+    padding: 0.875rem 1.5rem;
+    font-size: 1.1rem;
+  }
+  
+  .geo-confirm {
+    max-width: 360px;
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
+  }
+  
+  .geo-actions button {
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .location-selector {
+    font-size: 1.125rem;
+  }
+  
+  .location-button {
+    padding: 0.7rem 1rem;
+    gap: 0.6rem;
+  }
+  
+  .location-icon {
+    width: 28px;
+    height: 28px;
+    margin-right: 0.5rem;
+  }
+  
+  .city-dropdown {
+    width: 320px;
+    max-height: 400px;
+    padding: 1.25rem 0;
+  }
+  
+  .search-input {
+    padding: 0.7rem 1rem;
+    font-size: 1.2rem;
+  }
+  
+  .city-dropdown li {
+    padding: 1rem 1.75rem;
+    font-size: 1.2rem;
+  }
+  
+  .geo-confirm {
+    max-width: 400px;
+    padding: 1.25rem 1.5rem;
+    font-size: 1.2rem;
+  }
+  
+  .geo-actions button {
+    padding: 0.6rem 1.2rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .location-selector {
+    font-size: 1.25rem;
+  }
+  
+  .location-button {
+    padding: 0.8rem 1.125rem;
+    gap: 0.7rem;
+  }
+  
+  .location-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 0.55rem;
+  }
+  
+  .city-dropdown {
+    width: 360px;
+    max-height: 450px;
+    padding: 1.5rem 0;
+  }
+  
+  .search-input {
+    padding: 0.8rem 1.125rem;
+    font-size: 1.3rem;
+  }
+  
+  .city-dropdown li {
+    padding: 1.125rem 2rem;
+    font-size: 1.3rem;
+  }
+  
+  .geo-confirm {
+    max-width: 440px;
+    padding: 1.5rem 1.75rem;
+    font-size: 1.3rem;
+  }
+  
+  .geo-actions button {
+    padding: 0.7rem 1.4rem;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  .location-selector {
+    font-size: 0.7rem;
+  }
+  
+  .location-button {
+    padding: 0.3rem 0.35rem;
+    gap: 0.25rem;
+  }
+  
+  .location-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 0.3rem;
+  }
+  
+  .city-dropdown {
+    width: 180px;
+    max-height: 200px;
+  }
+  
+  .search-input {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .city-dropdown li {
+    padding: 0.4rem 0.875rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .location-selector {
+    font-size: 0.65rem;
+  }
+  
+  .location-button {
+    padding: 0.25rem 0.3rem;
+    gap: 0.2rem;
+  }
+  
+  .location-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 0.25rem;
+  }
+  
+  .city-dropdown {
+    width: 160px;
+    max-height: 180px;
+  }
+  
+  .search-input {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+  }
+  
+  .city-dropdown li {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+  }
 }
 
 </style>

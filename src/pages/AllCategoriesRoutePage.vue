@@ -16,7 +16,7 @@ import { ref } from 'vue'
 import { Icon } from '@iconify/vue'
 
 const cities = ref([
- { name: 'Экскурсии', attractions: 70, image: '/Excursions.jpeg' },
+  { name: 'Экскурсии', attractions: 70, image: '/Excursions.jpeg' },
   { name: 'Где поесть', attractions: 245, image: '/Category.resto.jpeg' },
   { name: 'Размещение', attractions: 123, image: '/Category.hotels.jpeg' },
   { name: 'Активный отдых', attractions: 53, image: '/Category.activity.jpeg' },
@@ -38,6 +38,6 @@ import { useRouter} from 'vue-router'
 const router = useRouter()
 
 function goToCity(city) {
-  console.log('Navigating to', city.name)
+  router.push({ name: 'category-detail', params: { name: city.name } })
 }
 </script>

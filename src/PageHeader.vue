@@ -1,29 +1,41 @@
 <template>
   <header class="mobile-header" :class="{ scrolled }">
-    <!-- Logo -->
-    <PageLogo />
-    <Location />
-
-    <!-- Search Bar -->
-    <div class="search-container">
-      <SearchBar />
+    <!-- Logo Section -->
+    <div class="logo-section">
+      <PageLogo />
     </div>
 
-    <!-- Dropdown Menu -->
-    <button class="lang-toggle" @click="toggleLang" :aria-label="`Change language, current: ${lang.toUpperCase()}`">
-      {{ lang.toUpperCase() }}
-    </button>
-    <div class="menu-wrapper" ref="menuWrapper">
-      <button @click="toggleMenu" ref="menuButton" class="avatar-button" aria-label="Открыть меню пользователя" aria-haspopup="menu" :aria-expanded="showMenu">
-        <img src="/default-avatar.png" alt="User Avatar" class="avatar-icon" />
-    </button>
+    <!-- Center Section -->
+    <div class="center-section">
+      <Location />
+    </div>
 
-      <ul v-if="showMenu" class="menu-dropdown">
-        <li @click="selectItem('Home')">  Главная</li>
-        <li @click="selectItem('Categories')">Категории</li>
-        <li @click="selectItem('Login')"> Логин</li>
-        <li @click="selectItem('Sign Up')"> Регистрация</li>
-      </ul>
+    <!-- Right Section -->
+    <div class="right-section">
+      <!-- Search Bar -->
+      <div class="search-container">
+        <SearchBar />
+      </div>
+
+      <!-- Language Toggle -->
+      <button class="lang-toggle" @click="toggleLang" :aria-label="`Change language, current: ${lang.toUpperCase()}`">
+        {{ lang.toUpperCase() }}
+      </button>
+
+      <!-- User Menu -->
+      <div class="menu-wrapper" ref="menuWrapper">
+        <button @click="toggleMenu" ref="menuButton" class="avatar-button" aria-label="Открыть меню пользователя" aria-haspopup="menu" :aria-expanded="showMenu">
+          <img src="/default-avatar.png" alt="User Avatar" class="avatar-icon" />
+        </button>
+
+        <ul v-if="showMenu" class="menu-dropdown">
+          <li @click="selectItem('Home')">  Главная</li>
+          <li @click="selectItem('Categories')">Категории</li>
+          <li @click="openCityConfirm">Сменить город</li>
+          <li @click="selectItem('Login')"> Логин</li>
+          <li @click="selectItem('Sign Up')"> Регистрация</li>
+        </ul>
+      </div>
     </div>
   </header>
 </template>
@@ -92,6 +104,11 @@ function selectItem(item) {
   showMenu.value = false
 }
 
+function openCityConfirm() {
+  showMenu.value = false
+  window.dispatchEvent(new Event('city:openConfirm'))
+}
+
 function handleOutsideClick(event) {
   const dropdown = document.querySelector('.menu-dropdown')
   const button = document.querySelector('.avatar-button')
@@ -127,13 +144,40 @@ onBeforeUnmount(() => {
   z-index: 9999;
   background: rgba(255,255,255,0.85);
   backdrop-filter: saturate(120%) blur(8px);
-  padding: 0;
+  padding: 0 16px;
   box-shadow: 0 0 0 rgba(0,0,0,0);
-  height: 77px; 
+  height: 4rem; 
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  justify-content: space-between;
   transition: box-shadow .2s ease, background .2s ease;
+}
+
+/* Header Sections */
+.logo-section {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: fit-content;
+}
+
+.center-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 8px 0 0.5rem;
+  min-width: 0;
+}
+
+.right-section {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-width: 120px;
 }
 .mobile-header.scrolled {
   background: rgba(255,255,255,0.9);
@@ -147,6 +191,8 @@ onBeforeUnmount(() => {
 .mobile-header .logo {
   flex-shrink: 0;
   font-size: 1.75rem;
+  max-width: 120px;
+  height: auto;
 }
 
 /* Search Bar */
@@ -289,6 +335,244 @@ onBeforeUnmount(() => {
 
 .menu-dropdown li:last-child {
   border-bottom: none;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .mobile-header {
+    padding: 0 24px;
+    height: 80px;
+  }
+  
+
+  
+  .center-section {
+    margin: 0 12px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 16px;
+    min-width: 140px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 2rem;
+    max-width: 140px;
+  }
+  
+  .lang-toggle {
+    height: 40px;
+    min-width: 48px;
+    font-size: 0.9rem;
+  }
+  
+  .avatar-button {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .menu-dropdown {
+    width: 280px;
+    padding: 1rem;
+  }
+  
+  .menu-dropdown li {
+    font-size: 1rem;
+    padding: 0.75rem 0.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-header {
+    padding: 0 32px;
+    height: 85px;
+  }
+  
+
+  
+  .center-section {
+    margin: 0 16px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 20px;
+    min-width: 160px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 2.25rem;
+    max-width: 160px;
+  }
+  
+  .lang-toggle {
+    height: 44px;
+    min-width: 52px;
+    font-size: 1rem;
+  }
+  
+  .avatar-button {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .menu-dropdown {
+    width: 320px;
+    padding: 1.25rem;
+  }
+  
+  .menu-dropdown li {
+    font-size: 1.1rem;
+    padding: 0.875rem 0.75rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mobile-header {
+    padding: 0 40px;
+    height: 90px;
+  }
+  
+
+  
+  .center-section {
+    margin: 0 20px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 24px;
+    min-width: 180px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 2.5rem;
+    max-width: 180px;
+  }
+  
+  .lang-toggle {
+    height: 48px;
+    min-width: 56px;
+    font-size: 1.1rem;
+  }
+  
+  .avatar-button {
+    width: 52px;
+    height: 52px;
+  }
+  
+  .menu-dropdown {
+    width: 360px;
+    padding: 1.5rem;
+  }
+  
+  .menu-dropdown li {
+    font-size: 1.2rem;
+    padding: 1rem 1rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mobile-header {
+    padding: 0 48px;
+    height: 95px;
+  }
+  
+
+  
+  .center-section {
+    margin: 0 24px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 28px;
+    min-width: 200px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 2.75rem;
+    max-width: 200px;
+  }
+  
+  .lang-toggle {
+    height: 52px;
+    min-width: 60px;
+    font-size: 1.2rem;
+  }
+  
+  .avatar-button {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .menu-dropdown {
+    width: 400px;
+    padding: 1.75rem;
+  }
+  
+  .menu-dropdown li {
+    font-size: 1.3rem;
+    padding: 1.125rem 1.25rem;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767px) {
+  .mobile-header {
+    padding: 0 12px;
+  }
+  
+  .center-section {
+    margin: 0 6px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 8px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 1.5rem;
+    max-width: 100px;
+  }
+  
+  .lang-toggle {
+    height: 32px;
+    min-width: 40px;
+    font-size: 0.8rem;
+  }
+  
+  .avatar-button {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-header {
+    padding: 0 0;
+  }
+  
+  .center-section {
+    margin: 0 4px 0 0.5rem;
+  }
+  
+  .right-section {
+    gap: 6px;
+  }
+  
+  .mobile-header .logo {
+    font-size: 1.25rem;
+    max-width: 80px;
+  }
+  
+  .lang-toggle {
+    height: 28px;
+    min-width: 36px;
+    font-size: 0.75rem;
+  }
+  
+  .avatar-button {
+    width: 42px;
+    height: 42px;
+  }
 }
 
 </style>

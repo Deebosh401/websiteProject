@@ -179,4 +179,145 @@ function toggleSearch() {
 .r-type[data-type="city"] { color: #059669; border-color: #bbf7d0; }
 .r-name { font-weight: 700; color: #111827; }
 
+/* Responsive Design */
+@media (min-width: 768px) {
+  .icon-wrapper {
+    width: clamp(2.5rem, 2.5vw, 3.5rem);
+    height: clamp(2.5rem, 2.5vw, 3.5rem);
+  }
+  
+  .search-active {
+    height: 80px;
+    padding: 1rem 1.25rem;
+  }
+  
+  .search-input {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .results {
+    max-height: 60vh;
+  }
+  
+  .result {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  
+  .r-type {
+    font-size: 0.875rem;
+    padding: 4px 8px;
+  }
+  
+  .r-name {
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .icon-wrapper {
+    width: clamp(2.75rem, 2vw, 4rem);
+    height: clamp(2.75rem, 2vw, 4rem);
+  }
+  
+  .search-active {
+    height: 85px;
+    padding: 1.25rem 1.5rem;
+  }
+  
+  .search-input {
+    font-size: 1.1rem;
+    padding: 0.875rem 1.25rem;
+  }
+  
+  .results {
+    max-height: 70vh;
+  }
+  
+  .result {
+    padding: 14px 18px;
+    gap: 14px;
+  }
+  
+  .r-type {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+  }
+  
+  .r-name {
+    font-size: 1.1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .icon-wrapper {
+    width: clamp(3rem, 1.8vw, 4.5rem);
+    height: clamp(3rem, 1.8vw, 4.5rem);
+  }
+  
+  .search-active {
+    height: 90px;
+    padding: 1.5rem 1.75rem;
+  }
+  
+  .search-input {
+    font-size: 1.2rem;
+    padding: 1rem 1.5rem;
+  }
+  
+  .results {
+    max-height: 75vh;
+  }
+  
+  .result {
+    padding: 16px 20px;
+    gap: 16px;
+  }
+  
+  .r-type {
+    font-size: 0.95rem;
+    padding: 6px 12px;
+  }
+  
+  .r-name {
+    font-size: 1.2rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  .icon-wrapper {
+    width: clamp(3.25rem, 1.5vw, 5rem);
+    height: clamp(3.25rem, 1.5vw, 5rem);
+  }
+  
+  .search-active {
+    height: 95px;
+    padding: 1.75rem 2rem;
+  }
+  
+  .search-input {
+    font-size: 1.3rem;
+    padding: 1.125rem 1.75rem;
+  }
+  
+  .results {
+    max-height: 80vh;
+  }
+  
+  .result {
+    padding: 18px 22px;
+    gap: 18px;
+  }
+  
+  .r-type {
+    font-size: 1rem;
+    padding: 7px 14px;
+  }
+  
+  .r-name {
+    font-size: 1.3rem;
+  }
+}
+
 </style>
