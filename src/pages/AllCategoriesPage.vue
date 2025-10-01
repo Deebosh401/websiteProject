@@ -1,11 +1,8 @@
 <template>
   <div class="all-cities-page">
-    <div class="header-bar" :class="{ scrolled: isScrolled }">
       <div class="center-area">
         <button class="back-btn" @click="goBack">← Назад</button>
       </div>
-      <h1 v-show="!isScrolled" class="title">{{ title }}</h1>
-    </div>
 
     <div class="cities-scroll-container">
       <div
@@ -93,40 +90,10 @@ onUnmounted(() => {
   background-color: transparent;
 }
 
-.header-bar {
-  position: sticky;
-  top: 4.7rem;
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: transparent;
-  padding: 0.5rem 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
 .center-area {
   display: flex;
   justify-content: center;
   flex: 1;
-}
-
-.header-bar .title {
-  position: absolute;
-  right: 1rem;
-  font-family: 'DM Serif Display', serif;
-  font-weight: 700;
-  font-size: clamp(1rem, 2vw, 1.3rem);
-  line-height: 1;
-  color: #1f2937;
-  opacity: 1;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.header-bar.scrolled .title {
-  opacity: 0;
-  transform: translateY(-10px);
-  pointer-events: none;
 }
 
 .back-btn {
@@ -197,12 +164,11 @@ onUnmounted(() => {
   text-align: center;
   font-weight: 600;
   font-size: 0.7rem;
-
   white-space: normal; /* allow wrapping */
   overflow: hidden; 
   display: -webkit-box;
   line-clamp: 3;
-  -webkit-line-clamp: 2; /* show up to 2 lines */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 

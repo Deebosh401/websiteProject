@@ -1,11 +1,8 @@
 <template>
   <div class="all-cities-page">
-    <div class="header-bar" :class="{ scrolled: isScrolled }">
       <div class="center-area">
         <button class="back-btn" @click="goBack">← Назад</button>
       </div>
-      <h1 v-show="!isScrolled" class="title">{{ title }}</h1>
-</div>
 
     <div class="cities-scroll-container">
       <div

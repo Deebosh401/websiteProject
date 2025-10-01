@@ -58,24 +58,24 @@ const orderedCities = computed(() => {
   return center ? [center.name, ...others.map(c => c.name)] : byName.map(c => c.name)
 })
 
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2) ** 2
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-  return R * c
-}
+// function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+//   const R = 6371
+//   const dLat = (lat2 - lat1) * Math.PI / 180
+//   const dLon = (lon2 - lon1) * Math.PI / 180
+//   const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2) ** 2
+//   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+//   return R * c
+// }
 
-function nearestCity(lat: number, lng: number): { name: string; dist: number } | null {
-  let best: CityCoord | null = null
-  let bestDist = Number.POSITIVE_INFINITY
-  for (const c of cityCoords.value) {
-    const d = haversine(lat, lng, c.lat, c.lng)
-    if (d < bestDist) { best = c; bestDist = d }
-  }
-  return best ? { name: best.name, dist: bestDist } : null
-}
+// function nearestCity(lat: number, lng: number): { name: string; dist: number } | null {
+//   let best: CityCoord | null = null
+//   let bestDist = Number.POSITIVE_INFINITY
+//   for (const c of cityCoords.value) {
+//     const d = haversine(lat, lng, c.lat, c.lng)
+//     if (d < bestDist) { best = c; bestDist = d }
+//   }
+//   return best ? { name: best.name, dist: bestDist } : null
+// }
 
 function setCity(city: string) {
   localStorage.setItem('selectedCity', city)
@@ -105,43 +105,50 @@ onMounted(async () => {
   if (prompted) return
   show.value = true
   isLoading.value = true
-  const inSecureContext = window.isSecureContext || location.hostname === 'localhost'
+  
+  // TEMPORARILY DISABLED: Geolocation functionality
+  // const inSecureContext = window.isSecureContext || location.hostname === 'localhost'
 
-  // Fallback: IP-based geolocation for non-HTTPS or when permission denied
-  async function ipFallback() {
-    try {
-      const ctrl = new AbortController()
-      const t = setTimeout(() => ctrl.abort(), 5000)
-      const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal })
-      clearTimeout(t)
-      if (res.ok) {
-        const data: any = await res.json()
-        const lat = Number(data?.latitude)
-        const lon = Number(data?.longitude)
-        if (Number.isFinite(lat) && Number.isFinite(lon)) {
-          const n = nearestCity(lat, lon)
-          detectedCity.value = n ? n.name : regionalCenter
-          isLoading.value = false
-          return
-        }
-      }
-    } catch (_) {}
-    detectedCity.value = regionalCenter
-    isLoading.value = false
-  }
+  // TEMPORARILY DISABLED: IP-based geolocation for non-HTTPS or when permission denied
+  // async function ipFallback() {
+  //   try {
+  //     const ctrl = new AbortController()
+  //     const t = setTimeout(() => ctrl.abort(), 5000)
+  //     const res = await fetch('https://ipapi.co/json/', { signal: ctrl.signal })
+  //     clearTimeout(t)
+  //     if (res.ok) {
+  //       const data: any = await res.json()
+  //       const lat = Number(data?.latitude)
+  //       const lon = Number(data?.longitude)
+  //       if (Number.isFinite(lat) && Number.isFinite(lon)) {
+  //         const n = nearestCity(lat, lon)
+  //         detectedCity.value = n ? n.name : regionalCenter
+  //         isLoading.value = false
+  //         return
+  //       }
+  //     }
+  //   } catch (_) {}
+  //   detectedCity.value = regionalCenter
+  //   isLoading.value = false
+  // }
 
-  if (!navigator.geolocation || !inSecureContext) {
-    ipFallback()
-    return
-  }
-  navigator.geolocation.getCurrentPosition((pos) => {
-    const { latitude, longitude } = pos.coords
-    const n = nearestCity(latitude, longitude)
-    detectedCity.value = n ? n.name : regionalCenter
-    isLoading.value = false
-  }, () => {
-    ipFallback()
-  }, { enableHighAccuracy: false, timeout: 6000 })
+  // TEMPORARILY DISABLED: Browser geolocation
+  // if (!navigator.geolocation || !inSecureContext) {
+  //   ipFallback()
+  //   return
+  // }
+  // navigator.geolocation.getCurrentPosition((pos) => {
+  //   const { latitude, longitude } = pos.coords
+  //   const n = nearestCity(latitude, longitude)
+  //   detectedCity.value = n ? n.name : regionalCenter
+  //   isLoading.value = false
+  // }, () => {
+  //   ipFallback()
+  // }, { enableHighAccuracy: false, timeout: 6000 })
+  
+  // TEMPORARILY: Set default city without geolocation
+  detectedCity.value = regionalCenter
+  isLoading.value = false
 })
 
 // Allow reopening the modal on demand, regardless of the once-per-browser flag

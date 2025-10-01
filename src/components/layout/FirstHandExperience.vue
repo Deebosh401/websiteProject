@@ -1,12 +1,10 @@
 <template>
   <section class="fhe">
-    <!-- Header -->
     <div class="fhe-header">
       <h2>От первого лица</h2>
       <button class="link" @click="goAll">Все маршруты</button>
     </div>
 
-    <!-- Feature Carousel -->
     <div class="carousel" v-if="featured.length">
       <article
         v-for="t in featured"
@@ -34,13 +32,11 @@
         </div>
       </article>
 
-      <!-- Create new route -->
       <button class="feat-create" @click="showCreate = true">
         <span>＋</span><em>Создать маршрут</em>
       </button>
     </div>
 
-    <!-- Filters -->
     <div class="filters">
       <input v-model="q" class="f-input" type="search" placeholder="Поиск по названию, тегам…" />
       <div class="f-row">
@@ -90,7 +86,6 @@
       </div>
     </div>
 
-    <!-- List -->
     <div class="grid">
       <article
         v-for="t in shown"
@@ -130,9 +125,11 @@
                 <span v-else>💰</span>
               </span>
             <span v-if="t.payment" class="payment" :title="getPaymentTitle(t.payment)">
-                <span v-if="t.payment.cash && t.payment.card">💵💳</span>
-              <span v-else-if="t.payment.cash">💵</span>
-              <span v-else-if="t.payment.card">💳</span>
+            <span v-if="t.payment.cash" class="payment-available">💵</span>
+            <span v-else class="payment-unavailable">💵</span>
+            
+            <span v-if="t.payment.card" class="payment-available">💳</span>
+            <span v-else class="payment-unavailable">💳</span>
             </span>
           </div>
 
@@ -174,10 +171,8 @@
       </article>
     </div>
 
-    <!-- Empty state -->
     <p v-if="!shown.length" class="empty">Ничего не найдено. Измените фильтры.</p>
 
-    <!-- Detail Drawer -->
     <div class="drawer" v-if="active" @click.self="closeDetail">
       <div class="sheet">
         <div class="sheet-bar"><div class="drag"></div></div>
@@ -185,7 +180,6 @@
         <div class="sheet-head">
           <h3 class="sheet-title">{{ active.title }}</h3>
 
-          <!-- Centered responsive metric bar -->
           <div class="sheet-metrics">
             <div class="chip-metric"><Icon icon="mdi:clock-outline" /> {{ active.duration }}ч</div>
             <div class="chip-metric"><Icon icon="mdi:map-marker-distance" /> {{ active.distance }}км</div>
@@ -194,7 +188,6 @@
           </div>
         </div>
 
-        <!-- Media slider (openable) -->
         <div class="media-slider">
           <div class="media-track">
             <div v-for="(m, i) in active.media" :key="i" class="media-slide" @click="openViewer(m)">
@@ -208,10 +201,13 @@
           </div>
         </div>
 
-        <!-- Map with animated pins -->
+        <div v-if="active.summary" class="description-section">
+          <h4>📝 Описание маршрута</h4>
+          <p class="description-text">{{ active.summary }}</p>
+        </div>
+
         <div class="map-box">
           <div ref="mapEl" class="map-frame">
-            <!-- Map overlay elements -->
             <div class="map-overlay">
               <div class="map-stats">
                 <div class="stat-item">
@@ -235,7 +231,6 @@
           </div>
         </div>
 
-        <!-- External Maps Button -->
         <div class="external-maps-section">
           <button class="btn external-maps-btn" @click="showExternalMapsModal = true">
             <Icon icon="mdi:map-marker" />
@@ -244,7 +239,6 @@
           </button>
         </div>
 
-        <!-- Steps / Itinerary -->
         <div class="steps" v-if="active.stops?.length">
           <div class="steps-header">
             <h4>📍 Остановки</h4>
@@ -274,7 +268,6 @@
           </div>
         </div>
 
-        <!-- Ratings breakdown -->
         <div class="breakdown">
           <div class="breakdown-header">
             <h4>⭐ Оценки</h4>
@@ -311,7 +304,6 @@
           </div>
         </div>
 
-        <!-- Comments -->
         <div class="comments">
           <div class="comments-header">
             <h4>💬 Комментарии</h4>
@@ -328,7 +320,6 @@
                 </div>
                 <p class="c-text">{{ c.text }}</p>
 
-                <!-- media thumbs in comments -->
                 <div v-if="c.media?.length" class="c-media">
                   <div v-for="(m, k) in c.media" :key="k" class="c-thumb" @click="openViewer(m)">
                     <template v-if="isVideo(m)">
@@ -343,7 +334,6 @@
             </div>
           </div>
 
-          <!-- add comment -->
           <div class="c-form" @submit.prevent>
             <label class="attach">
               <input type="file" multiple accept="image/*,video/*" @change="handleCommentFiles" />
@@ -355,7 +345,6 @@
             </button>
           </div>
 
-          <!-- selected files preview -->
           <div v-if="pendingCommentMedia.length" class="attach-previews">
             <div v-for="(m, i) in pendingCommentMedia" :key="i" class="ap-item" @click="openViewer(m)">
               <template v-if="isVideo(m)"><video muted><source :src="m" type="video/mp4" /></video></template>
@@ -374,7 +363,6 @@
       </div>
     </div>
 
-    <!-- Fullscreen viewer -->
     <div v-if="viewer.src" class="viewer" @click.self="closeViewer">
       <button class="viewer-close" @click="closeViewer"><Icon icon="mdi:close" /></button>
       <div class="viewer-body">
@@ -387,7 +375,6 @@
       </div>
     </div>
 
-    <!-- External Maps Modal -->
     <div class="modal" v-if="showExternalMapsModal" @click.self="showExternalMapsModal=false">
       <div class="panel external-maps-panel">
         <h3>🗺️ Открыть маршрут</h3>
@@ -417,10 +404,8 @@
       </div>
     </div>
 
-    <!-- Create Modal -->
     <div class="modal" v-if="showCreate" @click.self="showCreate=false" @keydown.esc="showCreate=false">
       <div class="create-panel">
-        <!-- Header -->
         <div class="create-header">
           <h3>🧭 Создать новый маршрут</h3>
           <button class="close-btn" @click="showCreate=false">
@@ -428,7 +413,6 @@
           </button>
         </div>
 
-        <!-- Progress indicator -->
         <div class="create-progress">
           <div class="progress-step" :class="{ active: currentStep >= 1 }">
             <div class="step-number">1</div>
@@ -448,7 +432,6 @@
           </div>
         </div>
 
-        <!-- Step 1: Basic Info -->
         <div v-if="currentStep === 1" class="create-step">
           <div class="form-section">
             <h4>📝 Основная информация</h4>
@@ -574,7 +557,6 @@
           </div>
         </div>
 
-        <!-- Step 2: Stops -->
         <div v-if="currentStep === 2" class="create-step">
           <div class="form-section">
             <h4>📍 Остановки маршрута</h4>
@@ -599,7 +581,6 @@
             </div>
           </div>
             
-            <!-- Route Info Panel - Below Map -->
             <div v-if="routeInfoData.show" class="route-info-below">
               <div class="route-info-header">
                 <h4>Статистика маршрута</h4>
@@ -669,7 +650,6 @@
           </div>
         </div>
 
-        <!-- Step 3: Facilities -->
         <div v-if="currentStep === 3" class="create-step">
           <div class="form-section">
             <h4>🏪 Удобства и оплата</h4>
@@ -823,7 +803,6 @@
           </div>
         </div>
 
-        <!-- Step 4: Media -->
         <div v-if="currentStep === 4" class="create-step">
           <div class="form-section">
             <h4>📸 Медиафайлы</h4>
@@ -873,7 +852,6 @@
           </div>
         </div>
 
-        <!-- Navigation -->
         <div class="create-navigation">
           <button 
             v-if="currentStep > 1" 
@@ -909,11 +887,26 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Icon } from '@iconify/vue'
 import maplibregl, { Map, Marker, LngLatBounds } from 'maplibre-gl'
 import type { LngLatLike, GeoJSONSource,StyleSpecification } from 'maplibre-gl'
 import type { LineString, Feature } from 'geojson'
-import { allTrails, type Trail } from '../../Data'
+import { 
+  allTrails, 
+  type Trail, 
+  getTrailFacilities, 
+  getFacilitiesList, 
+  getTagSuggestions,
+  getCityCoordinates,
+  getCostTypeLabel,
+  getCostTypePlaceholder,
+  getDifficultyIcon,
+  getPaymentTitle,
+  buildOSRMUrl,
+  buildGoogleDirectionsUrl,
+  buildYandexDirectionsUrl
+} from '../../Data'
 
 // -------------------- Types --------------------
 type Difficulty = 'лёгкий' | 'средний' | 'сложный'
@@ -924,12 +917,7 @@ const isVideo = (src: string) => src.toLowerCase().endsWith('.mp4')
 const diffLabel = (d: Difficulty) => d === 'лёгкий' ? 'Лёгкий' : d === 'средний' ? 'Средний' : 'Сложный'
 const ratingTitle = (t: Trail) =>
   `Виды: ${t.ratings.scenery.toFixed(1)} • Доступность: ${t.ratings.access.toFixed(1)} • Комфорт: ${t.ratings.comfort.toFixed(1)}`
-const getPaymentTitle = (payment: { cash: boolean; card: boolean }) => {
-  if (payment.cash && payment.card) return 'Наличные и карта'
-  if (payment.cash) return 'Только наличные'
-  if (payment.card) return 'Только карта'
-  return 'Оплата не указана'
-}
+// getPaymentTitle is now imported from Data.ts
 
 const getCostsTitle = (costs: { selectedType: string; amount: string; notes: string }) => {
   if (!costs.selectedType || !costs.amount) return 'Бесплатно'
@@ -941,49 +929,9 @@ const getCostsTitle = (costs: { selectedType: string; amount: string; notes: str
   return parts.join(' • ')
 }
 
-const getCostTypeLabel = (type: string) => {
-  switch (type) {
-    case 'для одного': return 'Для одного'
-    case 'для семьи': return 'Для семьи'
-    case 'для группы': return 'Для группы'
-    default: return 'Стоимость'
-  }
-}
+const getCostPlaceholder = getCostTypePlaceholder
 
-const getCostPlaceholder = (type: string) => {
-  switch (type) {
-    case 'для одного': return 'Например: 300₽'
-    case 'для семьи': return 'Например: 800₽'
-    case 'для группы': return 'Например: 1500₽'
-    default: return 'Введите стоимость'
-  }
-}
-
-// City coordinates mapping
-const cityCoordinates = {
-  'Калининград': [20.4522, 54.7104],
-  'Светлогорск': [20.1438, 54.9439],
-  'Зеленоградск': [20.4756, 54.9586],
-  'Янтарный': [19.9408, 54.8715],
-  'Советск': [21.8886, 55.0816],
-  'Балтийск': [19.9140, 54.6514],
-  'Черняховск': [21.7969, 54.6244],
-  'Гвардейск': [21.0606, 54.6518],
-  'Гусев': [22.1992, 54.5900],
-  'Багратионовск': [20.6417, 54.3872],
-  'Пионерский': [20.2270, 54.9500],
-  'Гурьевск': [20.6036, 54.7708],
-  'Озерск': [22.0158, 54.4106],
-  'Железнодорожный': [21.3039, 54.3433],
-  'Нестеров': [22.5666, 54.6319],
-  'Правдинск': [21.0080, 54.4432],
-  'Краснознаменск': [22.4924, 54.9456],
-  'Славск': [21.6761, 55.0497],
-  'Полесск': [21.0994, 54.8623],
-  'Неман': [22.0325, 55.0317],
-  'Ладушкин': [20.1701, 54.5696],
-  'Мамоново': [19.9392, 54.4646]
-}
+// City coordinates are now imported from Data.ts
 
 // -------------------- Demo data --------------------
 // Initialize with some sample trails if empty
@@ -1003,7 +951,7 @@ if (allTrails.value.length === 0) {
       payment: { cash: true, card: true },
       costs: {
         selectedType: 'для одного',
-        amount: '300₽',
+        amount: '300<span class="currency-symbol">₽</span>',
         notes: 'Билеты в музей, вход в парк'
       },
     ratings: { overall: 4.7, scenery: 4.6, access: 4.8, comfort: 4.5 },
@@ -1057,7 +1005,24 @@ const likes = ref<Set<number>>(new Set())
 onMounted(() => {
   const s = localStorage.getItem('fhe_saved'); if (s) saved.value = new Set(JSON.parse(s))
   const l = localStorage.getItem('fhe_likes'); if (l) likes.value = new Set(JSON.parse(l))
+  
+  // Listen for city changes from header
+  window.addEventListener('city:changed', handleCityChange)
 })
+
+onUnmounted(() => {
+  window.removeEventListener('city:changed', handleCityChange)
+})
+
+// Handle city changes from header
+function handleCityChange(event: any) {
+  const newCity = event.detail
+  if (newCity && newCity !== selectedCity.value) {
+    selectedCity.value = newCity
+    // Update trails to show city-specific content
+    // The trails will automatically filter based on the new city
+  }
+}
 
 const persist = () => {
   localStorage.setItem('fhe_saved', JSON.stringify([...saved.value]))
@@ -1101,19 +1066,7 @@ const allTags = computed(() => {
   return Array.from(s).sort()
 })
 
-const facilities = [
-  { key: 'toilets', label: 'Туалеты', short: 'WC', icon: 'mdi:toilet' },
-  { key: 'rest', label: 'Место отдыха', short: 'Отдых', icon: 'mdi:bench' },
-  { key: 'playground', label: 'Площадка', short: 'Дети', icon: 'mdi:castle' },
-  { key: 'accessible', label: 'Доступно', short: 'Доступ', icon: 'mdi:wheelchair-accessibility' },
-  { key: 'parking', label: 'Парковка', short: 'Парковка', icon: 'mdi:car' },
-  { key: 'wifi', label: 'Wi-Fi', short: 'WiFi', icon: 'mdi:wifi' },
-  { key: 'cafe', label: 'Кафе', short: 'Кафе', icon: 'mdi:coffee' },
-  { key: 'water', label: 'Вода', short: 'Вода', icon: 'mdi:water' },
-  { key: 'shelter', label: 'Укрытие', short: 'Укрытие', icon: 'mdi:umbrella' },
-  { key: 'lighting', label: 'Освещение', short: 'Свет', icon: 'mdi:lightbulb' },
-  { key: 'security', label: 'Охрана', short: 'Охрана', icon: 'mdi:shield' }
-] as const
+const facilities = getTrailFacilities()
 
 const matchesRange = (val: number, spec: string) => {
   if (!spec) return true
@@ -1211,33 +1164,11 @@ const form = ref({
 const tagInput = ref('')
 
 // Helper functions for the new form
-const getDifficultyIcon = (diff: Difficulty) => {
-  switch (diff) {
-    case 'лёгкий': return 'mdi:walk'
-    case 'средний': return 'mdi:hiking'
-    case 'сложный': return 'mdi:mountain'
-    default: return 'mdi:walk'
-  }
-}
+// getDifficultyIcon is now imported from Data.ts
 
-const tagSuggestions = [
-  'история', 'город', 'семейный', 'море', 'виды', 'романтика', 
-  'природа', 'культура', 'активный', 'спокойный', 'вечерний', 'утренний'
-]
+const tagSuggestions = getTagSuggestions()
 
-const facilitiesList = [
-  { key: 'toilets' as const, label: 'Туалеты', icon: 'mdi:toilet' },
-  { key: 'rest' as const, label: 'Место отдыха', icon: 'mdi:bench' },
-  { key: 'playground' as const, label: 'Детская площадка', icon: 'mdi:castle' },
-  { key: 'accessible' as const, label: 'Доступность', icon: 'mdi:wheelchair-accessibility' },
-  { key: 'parking' as const, label: 'Парковка', icon: 'mdi:car' },
-  { key: 'wifi' as const, label: 'Wi-Fi', icon: 'mdi:wifi' },
-  { key: 'cafe' as const, label: 'Кафе', icon: 'mdi:coffee' },
-  { key: 'water' as const, label: 'Питьевая вода', icon: 'mdi:water' },
-  { key: 'shelter' as const, label: 'Укрытие', icon: 'mdi:umbrella' },
-  { key: 'lighting' as const, label: 'Освещение', icon: 'mdi:lightbulb' },
-  { key: 'security' as const, label: 'Охрана', icon: 'mdi:shield' }
-]
+const facilitiesList = getFacilitiesList()
 
 const addTag = () => {
   const v = tagInput.value.trim().toLowerCase()
@@ -1361,8 +1292,15 @@ const resetForm = () => {
   tagInput.value = ''
 }
 
-// -------------------- Nav stub --------------------
-const goAll = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+// -------------------- Navigation --------------------
+const router = useRouter()
+const route = useRoute()
+
+const goAll = () => {
+  // Get current city from route or default to Kaliningrad
+  const currentCity = route.params.name || 'Калининград'
+  router.push(`/city/${currentCity}/trips`)
+}
 
 // -------------------- Map (MapLibre GL JS) --------------------
 const mapEl = ref<HTMLDivElement | null>(null)
@@ -1900,7 +1838,7 @@ const pulsePinAt = (idx: number) => {
 const openInGoogleMaps = () => {
   if (!active.value?.stops?.length) return;
   const pts = active.value.stops.map(s => `${s.lat},${s.lng}`);
-  const google = `https://www.google.com/maps/dir/?api=1&origin=${pts[0]}&destination=${pts[pts.length-1]}&waypoints=${encodeURIComponent(pts.slice(1,-1).join('|'))}&travelmode=walking`;
+  const google = buildGoogleDirectionsUrl(pts[0], pts[pts.length-1], pts.slice(1,-1));
   window.open(google, '_blank');
   showExternalMapsModal.value = false;
 };
@@ -1908,7 +1846,7 @@ const openInGoogleMaps = () => {
 const openInYandexMaps = () => {
   if (!active.value?.stops?.length) return;
   const pts = active.value.stops.map(s => `${s.lat},${s.lng}`);
-  const yandex = `https://yandex.ru/maps/?rtext=${encodeURIComponent(pts.join('~'))}&rtt=auto`;
+  const yandex = buildYandexDirectionsUrl(pts);
   window.open(yandex, '_blank');
   showExternalMapsModal.value = false;
 };
@@ -1950,7 +1888,7 @@ watch(currentStep, async (step) => {
 watch(selectedCity, (newCity) => {
   if (currentStep.value === 2 && createMapInstance) {
     // Get coordinates for new city
-    const cityCoords = cityCoordinates[newCity as keyof typeof cityCoordinates] || [20.4522, 54.7104]
+    const cityCoords = getCityCoordinates(newCity)
     
     // Fly to new city location
     createMapInstance.flyTo({
@@ -2073,7 +2011,7 @@ const initCreateMap = () => {
   createMapMarkers = []
 
   // Get coordinates for selected city
-  const cityCoords = cityCoordinates[selectedCity.value as keyof typeof cityCoordinates] || [20.4522, 54.7104]
+  const cityCoords = getCityCoordinates(selectedCity.value)
   
   // Create new map instance
   createMapInstance = new maplibregl.Map({
@@ -2166,12 +2104,10 @@ const calculateAndDisplayRoute = async () => {
 
   try {
     // Build coordinates string for OSRM
-    const coordinates = form.value.stops.map(stop => `${stop.lng},${stop.lat}`).join(';')
+    const coordinates = form.value.stops.map(stop => `${stop.lng},${stop.lat}`)
     
     // Fetch route from OSRM (walking)
-    const response = await fetch(
-      `https://router.project-osrm.org/route/v1/foot-walking/${coordinates}?overview=full&geometries=geojson&annotations=duration,distance`
-    )
+    const response = await fetch(buildOSRMUrl(coordinates))
     
     if (!response.ok) {
       console.error('Failed to fetch route')
@@ -2283,7 +2219,6 @@ const removeStop = (index: number) => {
   form.value.stops.splice(index, 1)
   updateCreateMapMarkers()
   
-  // If we have less than 2 stops, clear the distance field
   if (form.value.stops.length < 2) {
     form.value.distance = ''
   }
@@ -2334,7 +2269,7 @@ const removeStop = (index: number) => {
 .line-2{ display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;line-clamp: 2; overflow:hidden; }
 .metrics{ display:flex; gap:10px; align-items:center; color:#374151; font-size:.92rem; flex-wrap:wrap }
 .rate{ font-weight:800; color:#f59e0b }
-.facilities{ display:flex; gap:10px; font-size:1.05rem }
+.facilities{ display:flex; gap:10px; font-size:1.26rem }
 .tags{ display:flex; gap:6px; flex-wrap:wrap }
 .tag{ background:#f7f7f9; border:1px solid #ececf2; border-radius:999px; padding:2px 8px; font-weight:700; font-size:.78rem }
 .actions{ display:flex; align-items:center; gap:8px; margin-top:2px }
@@ -2343,6 +2278,53 @@ const removeStop = (index: number) => {
 .owner{ margin-left:auto; display:inline-flex; align-items:center; gap:6px }
 .owner img{ width:26px; height:26px; border-radius:50%; object-fit:cover }
 .owner-name{ font-weight:700; font-size:.9rem }
+
+/* Description styles */
+.description {
+  margin-top: 6px;
+}
+
+.description-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #6b7280;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Description section in detail drawer */
+.description-section {
+  margin: 10px 14px 0;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.description-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.description-section .description-text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #475569;
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+
+
 .empty{ text-align:center; padding:12px 0 24px; color:#6b7280 }
 
 /* Drawer */
@@ -4404,5 +4386,23 @@ const removeStop = (index: number) => {
 .apple-pin.pin-pulsate .pin-emoji { 
   animation: applePulsate 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
   filter: drop-shadow(0 10px 25px rgba(0,0,0,0.8));
+}
+
+/* Star Rating Styling */
+.rating-section button .iconify {
+  color: #fbbf24;
+  opacity: 0.3;
+  transition: all 0.2s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.rating-section button.active .iconify {
+  opacity: 1;
+  color: #f59e0b;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.rating-section button:hover .iconify {
+  transform: scale(1.1);
 }
 </style>

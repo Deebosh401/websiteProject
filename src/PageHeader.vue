@@ -1,39 +1,55 @@
 <template>
   <header class="mobile-header" :class="{ scrolled }">
-    <!-- Logo Section -->
     <div class="logo-section">
       <PageLogo />
     </div>
 
-    <!-- Center Section -->
     <div class="center-section">
       <Location />
     </div>
 
-    <!-- Right Section -->
     <div class="right-section">
-      <!-- Search Bar -->
       <div class="search-container">
         <SearchBar />
       </div>
 
-      <!-- Language Toggle -->
       <button class="lang-toggle" @click="toggleLang" :aria-label="`Change language, current: ${lang.toUpperCase()}`">
         {{ lang.toUpperCase() }}
       </button>
 
-      <!-- User Menu -->
       <div class="menu-wrapper" ref="menuWrapper">
         <button @click="toggleMenu" ref="menuButton" class="avatar-button" aria-label="Открыть меню пользователя" aria-haspopup="menu" :aria-expanded="showMenu">
           <img src="/default-avatar.png" alt="User Avatar" class="avatar-icon" />
         </button>
 
         <ul v-if="showMenu" class="menu-dropdown">
-          <li @click="selectItem('Home')">  Главная</li>
-          <li @click="selectItem('Categories')">Категории</li>
+          <li @click="goToHome">Главная</li>
+          <li @click="goToCategories">Категории</li>
           <li @click="openCityConfirm">Сменить город</li>
-          <li @click="selectItem('Login')"> Логин</li>
-          <li @click="selectItem('Sign Up')"> Регистрация</li>
+          <li class="menu-divider"></li>
+          <li @click="goToAdmin" class="panel-link admin">
+            <Icon icon="mdi:shield-crown" />
+            Админ панель
+          </li>
+          <li @click="goToUser" class="panel-link user">
+            <Icon icon="mdi:account" />
+            Мой профиль
+          </li>
+          <li @click="goToGuide" class="panel-link guide">
+            <Icon icon="mdi:account-tie" />
+            Панель гида
+          </li>
+          <li @click="goToBusiness" class="panel-link business">
+            <Icon icon="mdi:store" />
+            Панель бизнеса
+          </li>
+          <li @click="goToChat" class="panel-link chat">
+            <Icon icon="mdi:message" />
+            Сообщения
+          </li>
+          <li class="menu-divider"></li>
+          <li @click="goToLogin">Логин</li>
+          <li @click="goToRegister">Регистрация</li>
         </ul>
       </div>
     </div>
@@ -44,7 +60,11 @@
 import PageLogo from './components/layout/PageLogo.vue'
 import SearchBar from './components/layout/SearchBar.vue'
 import Location from './components/layout/Location.vue'
+import { Icon } from '@iconify/vue'
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const showMenu = ref(false)
 const scrolled = ref(false)
@@ -99,9 +119,49 @@ dropdown.style.right = 'auto'
 }
 
 
-function selectItem(item) {
-  console.log(item)
+function goToHome() {
   showMenu.value = false
+  router.push('/')
+}
+
+function goToCategories() {
+  showMenu.value = false
+  router.push('/categories')
+}
+
+function goToAdmin() {
+  showMenu.value = false
+  router.push('/admin')
+}
+
+function goToUser() {
+  showMenu.value = false
+  router.push('/user')
+}
+
+function goToGuide() {
+  showMenu.value = false
+  router.push('/guide')
+}
+
+function goToBusiness() {
+  showMenu.value = false
+  router.push('/business')
+}
+
+function goToChat() {
+  showMenu.value = false
+  router.push('/chat')
+}
+
+function goToLogin() {
+  showMenu.value = false
+  router.push('/auth/login')
+}
+
+function goToRegister() {
+  showMenu.value = false
+  router.push('/auth/register')
 }
 
 function openCityConfirm() {
@@ -163,12 +223,13 @@ onBeforeUnmount(() => {
 }
 
 .center-section {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  margin: 0 8px 0 0.5rem;
   min-width: 0;
+  margin-left: 0.25rem;
+  max-width: 200px;
 }
 
 .right-section {
@@ -177,7 +238,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  min-width: 120px;
+  min-width: 160px;
 }
 .mobile-header.scrolled {
   background: rgba(255,255,255,0.9);
@@ -333,8 +394,51 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-.menu-dropdown li:last-child {
-  border-bottom: none;
+.menu-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.5rem 0;
+  border: none;
+  padding: 0;
+  cursor: default;
+}
+
+.menu-divider:hover {
+  background: #e5e7eb;
+  transform: none;
+  box-shadow: none;
+}
+
+.panel-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.panel-link.admin:hover {
+  background-color: #dc2626;
+  color: white;
+}
+
+.panel-link.user:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.panel-link.guide:hover {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.panel-link.business:hover {
+  background-color: #10b981;
+  color: white;
+}
+
+.panel-link.chat:hover {
+  background-color: #8b5cf6;
+  color: white;
 }
 
 /* Responsive Design */
@@ -347,7 +451,7 @@ onBeforeUnmount(() => {
 
   
   .center-section {
-    margin: 0 12px 0 0.5rem;
+    margin: 0 12px 0 0.25rem;
   }
   
   .right-section {
@@ -380,6 +484,7 @@ onBeforeUnmount(() => {
     font-size: 1rem;
     padding: 0.75rem 0.5rem;
   }
+  
 }
 
 @media (min-width: 1024px) {
@@ -391,7 +496,7 @@ onBeforeUnmount(() => {
 
   
   .center-section {
-    margin: 0 16px 0 0.5rem;
+    margin: 0 16px 0 0.25rem;
   }
   
   .right-section {
@@ -424,6 +529,7 @@ onBeforeUnmount(() => {
     font-size: 1.1rem;
     padding: 0.875rem 0.75rem;
   }
+  
 }
 
 @media (min-width: 1280px) {
@@ -435,7 +541,7 @@ onBeforeUnmount(() => {
 
   
   .center-section {
-    margin: 0 20px 0 0.5rem;
+    margin: 0 20px 0 0.25rem;
   }
   
   .right-section {
@@ -468,6 +574,7 @@ onBeforeUnmount(() => {
     font-size: 1.2rem;
     padding: 1rem 1rem;
   }
+  
 }
 
 @media (min-width: 1536px) {
@@ -479,7 +586,7 @@ onBeforeUnmount(() => {
 
   
   .center-section {
-    margin: 0 24px 0 0.5rem;
+    margin: 0 24px 0 0.25rem;
   }
   
   .right-section {
@@ -512,6 +619,7 @@ onBeforeUnmount(() => {
     font-size: 1.3rem;
     padding: 1.125rem 1.25rem;
   }
+  
 }
 
 /* Mobile-specific adjustments */
@@ -521,7 +629,8 @@ onBeforeUnmount(() => {
   }
   
   .center-section {
-    margin: 0 6px 0 0.5rem;
+    margin: 0 6px 0 0.25rem;
+    max-width: 150px;
   }
   
   .right-section {
@@ -543,15 +652,17 @@ onBeforeUnmount(() => {
     width: 46px;
     height: 46px;
   }
+  
 }
 
 @media (max-width: 480px) {
   .mobile-header {
-    padding: 0 0;
+    padding: 0 0.5rem;
   }
   
   .center-section {
-    margin: 0 4px 0 0.5rem;
+    margin: 0;
+    max-width: 120px;
   }
   
   .right-section {
@@ -572,6 +683,34 @@ onBeforeUnmount(() => {
   .avatar-button {
     width: 42px;
     height: 42px;
+  }
+  
+}
+
+/* Specific adjustment for 375px width devices */
+@media (max-width: 375px) {
+  .mobile-header {
+    padding: 0 12px;
+  }
+  
+  .center-section {
+    max-width: 100px;
+  }
+  
+  .right-section {
+    gap: 4px;
+    min-width: 100px;
+  }
+  
+  .avatar-button {
+    width: 46px;
+    height: 46px;
+    padding: 4px;
+  }
+  
+  .avatar-icon {
+    width: 38px;
+    height: 100%;
   }
 }
 

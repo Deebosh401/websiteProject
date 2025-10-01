@@ -1,2 +1,8 @@
 @import "tailwindcss";
 
+/* Smaller currency symbols */
+.currency-symbol {
+  font-size: 0.8em;
+  vertical-align: baseline;
+}
+

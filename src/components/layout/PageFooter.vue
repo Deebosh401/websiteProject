@@ -1,7 +1,6 @@
 <template>
   <footer class="footer" role = "contentinfo">
     <div class="footer-top">
-<!-- Logo was here -->
       <div class="footer-columns">
         <div class="column">
           <h4>Правовая информация</h4>

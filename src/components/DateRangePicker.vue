@@ -31,9 +31,10 @@
     </div>
   </template>
   
-  <script setup>
-  import { ref, computed, onMounted, watch } from 'vue'
-  import { format, addDays, subDays, startOfWeek, isSameMonth, isWithinInterval } from 'date-fns'
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { format, addDays, subDays, startOfWeek, isSameMonth, isWithinInterval } from 'date-fns'
+import { getSpecialDates } from '../Data'
   
   // State
   const selectedDate = ref(new Date())
@@ -145,11 +146,7 @@
   }
   
   function isSpecialDate(date) {
-    const specialDates = [
-      new Date(2025, 11, 25), // Christmas
-      new Date(2025, 0, 1), // New Year
-      new Date(2025, 6, 4), // Independence Day
-    ]
+    const specialDates = getSpecialDates()
     return specialDates.some(d => d.getTime() === date.getTime())
   }
   

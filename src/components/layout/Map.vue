@@ -1,13 +1,11 @@
 <template>
   <div class="map-widget-card">
-    <!-- Header with toggle -->
     <div class="map-header">
       <button class="toggle-map-btn" @click="toggleMap">
         {{ showMap ? 'Закрыть' : 'Открыть карту' }}
       </button>
     </div>
 
-    <!-- Map Modal -->
     <transition name="slide-up">
       <div v-if="showMap" class="map-modal-overlay" @click.self="toggleMap">
         <div class="map-modal">
@@ -22,7 +20,6 @@
 
           <div ref="mapContainer" class="map-container"></div>
 
-          <!-- Filters -->
           <div class="category-bar">
             <button
               v-for="cat in categories"
@@ -34,7 +31,6 @@
             </button>
           </div>
 
-          <!-- Search -->
           <div class="search-bar-container">
             <input
               v-model="searchQuery"
@@ -44,7 +40,6 @@
             />
           </div>
 
-          <!-- Places -->
           <div class="places-scroll">
             <div
               v-for="place in filteredPlaces"
@@ -68,6 +63,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import maplibregl from 'maplibre-gl'
 import Supercluster from 'supercluster'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import { getMapCategories, getMapPlaces, getDefaultMapCenter, getDefaultMapZoom, getMapCategoryIcon, getMapStyleUrl } from '../../Data'
 
 const map = ref(null)
 const mapContainer = ref(null)
@@ -76,25 +72,11 @@ const searchQuery = ref('')
 const showMap = ref(false)
 const mapLoading = ref(true)
 
-const mapCenter = ref([20.5123, 54.7101])
-const mapZoom = ref(13)
+const mapCenter = ref(getDefaultMapCenter())
+const mapZoom = ref(getDefaultMapZoom())
 
-const categories = [
-  { label: 'Все', value: null },
-  { label: 'Замки', value: 'castle' },
-  { label: 'Рестораны', value: 'restaurant' },
-  { label: 'Парк', value: 'park' },
-  { label: 'Море', value: 'seaview' },
-  { label: 'Природа', value: 'nature' }
-]
-
-const places = [
-  { id: 1, name: 'Кафедральный собор', lat: 54.7101, lng: 20.5123, description: 'Историческое здание', category: 'castle' },
-  { id: 2, name: 'Рыбная деревня', lat: 54.7107, lng: 20.5148, description: 'Набережная с кафе и музеями', category: 'restaurant' },
-  { id: 3, name: 'Башня Врангеля', lat: 54.7165, lng: 20.5120, description: 'Форт XIX века', category: 'castle' },
-  { id: 4, name: 'Музей янтаря', lat: 54.7161, lng: 20.5077, description: 'Культурный музей', category: 'park' },
-  { id: 5, name: 'Центральный парк', lat: 54.7150, lng: 20.5060, description: 'Большая зелёная зона', category: 'nature' }
-]
+const categories = getMapCategories()
+const places = getMapPlaces()
 
 const filteredPlaces = computed(() => {
   return places.filter(p => {
@@ -104,16 +86,7 @@ const filteredPlaces = computed(() => {
   })
 })
 
-const categoryIcons = {
-  castle: '🏰',
-  restaurant: '🍽️',
-  park: '🌳',
-  seaview: '🌊',
-  nature: '🌿'
-}
-function getCategoryIcon(category) {
-  return categoryIcons[category] || '📍'
-}
+// Category icons are now imported from Data.ts
 
 let clusterIndex = new Supercluster({ radius: 60, maxZoom: 17 })
 function createGeoJSON(features) {
@@ -127,8 +100,7 @@ function createGeoJSON(features) {
         name: p.name,
         description: p.description,
         category: p.category,
-        googleLink: `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}`,
-        yandexLink: `https://yandex.ru/maps/?rtext=~${p.lat},${p.lng}`
+        icon: getMapCategoryIcon(p.category)
       }
     }))
   }
@@ -152,7 +124,7 @@ function initMap() {
 
   map.value = new maplibregl.Map({
     container: mapContainer.value,
-    style: `https://api.maptiler.com/maps/streets/style.json?key=Fuo1P4u5HZvd7RfCDyrP`,
+    style: getMapStyleUrl(),
     center: mapCenter.value,
     zoom: mapZoom.value
   })

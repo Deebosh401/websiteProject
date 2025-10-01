@@ -1,12 +1,10 @@
 <template>
   <div class="guides-section">
-    <!-- Header -->
     <div class="guides-header">
       <h2>Наши гиды</h2>
       <span class="view-all" @click="goToAllGuides">Все гиды</span>
     </div>
 
-    <!-- Filters -->
     <div class="filters">
       <input
         v-model="query"
@@ -40,7 +38,6 @@
       </select>
     </div>
 
-    <!-- Listing: slider on mobile, grid on desktop -->
     <div class="guides-list">
       <div
         v-for="guide in displayedGuides"
@@ -50,16 +47,13 @@
         role="button"
         :aria-label="`Открыть профиль гида ${guide.name}`"
       >
-        <!-- avatar top-left -->
         <img :src="guide.avatar" class="guide-avatar tl" :alt="`Фото гида ${guide.name}`" loading="lazy" />
 
-        <!-- top row: name + rating -->
         <div class="row-top">
           <h3 class="guide-name">{{ guide.name }}</h3>
           <div class="guide-rating" :title="`${guide.rating} • ${guide.reviews} отзывов`">⭐ {{ guide.rating.toFixed(1) }}</div>
         </div>
 
-        <!-- second row: city + price -->
         <div class="row-meta">
           <span class="meta-item">
             <Icon icon="mdi:map-marker" class="meta-icon" /> {{ guide.city }}
@@ -69,14 +63,12 @@
           </span>
         </div>
 
-        <!-- languages inline, abbreviated -->
         <div class="row-langs">
           <span v-for="lang in guide.languages" :key="lang" class="chip chip-lang">
             {{ langCode(lang) }}
           </span>
         </div>
 
-        <!-- actions: details + fixed heart -->
         <div class="row-actions" @click.stop>
           <button class="details-button" @click="showDetails(guide)">Подробнее</button>
           <button
@@ -89,7 +81,6 @@
           </button>
         </div>
 
-        <!-- availability hint if date selected -->
         <div class="row-availability" v-if="selectedDate">
           <span :class="guideIsAvailable(guide, selectedDate) ? 'avail ok' : 'avail no'">
             <Icon :icon="guideIsAvailable(guide, selectedDate) ? 'mdi:check' : 'mdi:close'" />
@@ -103,13 +94,11 @@
       </p>
     </div>
 
-    <!-- Guide Modal -->
     <div v-if="activeGuide" class="guide-modal-overlay" @click.self="closeModal">
       <div class="guide-modal">
   <img :src="activeGuide.avatar" class="modal-avatar" :alt="`Фото гида ${activeGuide.name}`" />
   <h3 class="modal-name">{{ activeGuide.name }}</h3>
 
-  <!-- meta row -->
   <div class="modal-meta">
     <span class="meta-item">
       <Icon icon="mdi:map-marker" /> {{ activeGuide.city }}
@@ -122,7 +111,6 @@
     </span>
   </div>
 
-  <!-- languages -->
   <div class="modal-langs">
     <span class="langs-label">Языки:</span>
     <div class="langs-chips">

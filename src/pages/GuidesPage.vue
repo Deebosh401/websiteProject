@@ -5,14 +5,13 @@
       <p>Профессиональные экскурсоводы и местные эксперты</p>
     </div>
 
-    <!-- Search and Filter Bar -->
     <div class="search-filter-bar">
       <div class="search-section">
         <input
           v-model="searchQuery"
           class="search-input"
           type="search"
-          placeholder="Поиск гидов по имени или специализации…"
+          placeholder="Поиск гидов по имени, специализации, описанию…"
           aria-label="Поиск гидов"
         />
       </div>
@@ -41,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Featured Guide -->
     <div class="featured-guide" v-if="featuredGuide">
       <div class="featured-badge">⭐ Рекомендуемый гид</div>
       <div class="guide-card featured">
@@ -55,10 +53,7 @@
           <h2>{{ featuredGuide.name }}</h2>
           <p class="guide-specialty">{{ featuredGuide.specialties.join(', ') }}</p>
           <div class="guide-rating">
-            <div class="stars">
-              <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= featuredGuide.rating }">⭐</span>
-            </div>
-            <span class="rating-text">{{ featuredGuide.rating }}/5</span>
+            <StarRating :rating="featuredGuide.rating" :show-text="true" />
           </div>
           <p class="guide-description">{{ featuredGuide.description }}</p>
           <div class="guide-languages">
@@ -80,7 +75,6 @@
       </div>
     </div>
 
-    <!-- All Guides Grid -->
     <div class="guides-grid">
       <div
         class="guide-card"
@@ -98,10 +92,7 @@
           <h3>{{ guide.name }}</h3>
           <p class="guide-specialty">{{ guide.specialties.join(', ') }}</p>
           <div class="guide-rating">
-            <div class="stars">
-              <span v-for="i in 5" :key="i" class="star" :class="{ filled: i <= guide.rating }">⭐</span>
-            </div>
-            <span class="rating-text">{{ guide.rating }}/5</span>
+            <StarRating :rating="guide.rating" :show-text="true" />
           </div>
           <p class="guide-description">{{ guide.description }}</p>
           <div class="guide-languages">
@@ -125,7 +116,6 @@
       <button class="clear-filters-btn" @click="clearFilters">Очистить фильтры</button>
     </div>
 
-    <!-- Contact Modal -->
     <div v-if="showContactModal" class="modal-overlay" @click="closeContactModal">
       <div class="contact-modal" @click.stop>
         <div class="modal-header">
@@ -168,6 +158,8 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { allGuides, getGuidesByCity } from '../Data'
+import { intelligentTextSearch } from '../utils/intelligentSearch'
+import StarRating from '../components/StarRating.vue'
 
 const router = useRouter()
 
@@ -207,11 +199,10 @@ const filteredGuides = computed(() => {
 
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(guide => 
-      guide.name.toLowerCase().includes(query) ||
-      guide.specialties.some(specialty => specialty.toLowerCase().includes(query)) ||
-      guide.description.toLowerCase().includes(query)
-    )
+    filtered = filtered.filter(guide => {
+      const searchText = `${guide.name} ${guide.specialties.join(' ')} ${guide.description}`
+      return intelligentTextSearch(searchText, query)
+    })
   }
 
   if (selectedSpecialty.value) {

@@ -1,5 +1,4 @@
 <template>
-<!-- City Selector -->
 <div class="location-selector" ref="locationRef">
   <div class="location-button" @click="toggleCityDropdown" role="button" aria-haspopup="listbox" :aria-expanded="showCityDropdown" :aria-label="`Выбрать город: ${selectedCity}`">
   <svg

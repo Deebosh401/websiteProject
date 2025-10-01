@@ -28,7 +28,7 @@ const cities = ref([
   { name: 'Мастер-классы', attractions: 123, image: '/Workshop.jpeg' },
   { name: 'Музеи', attractions: 123, image: '/Museums.jpeg' },
   { name: 'Парки/cкверы', attractions: 123, image: '/Parks.jpeg' },
-  { name: 'Отпускной транспорт', attractions: 123, image: '/transport.jpeg' },
+  { name: 'Аренда транспорта', attractions: 123, image: '/transport.jpeg' },
   { name: 'Выставки', attractions: 123, image: '/Exhibition.jpeg' },
 ])
 

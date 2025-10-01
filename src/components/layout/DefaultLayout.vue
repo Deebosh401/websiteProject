@@ -1,15 +1,12 @@
 <template>
     <div >
-    <!--Header-->
   <PageHeader/>
 
-  <!--Main Content-->
 
   <main class = "main-content">
     <router-view></router-view>
   </main>
 
-  <!--Footer-->
   <PageFooter/>
   <CityConfirmModal />
   </div>

@@ -37,24 +37,25 @@
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { allAttractions, citiesData } from '../../Data'
+import { intelligentTextSearch } from '../../utils/intelligentSearch'
 
 const searchQuery = ref('')
 const isSearchActive = ref(false)
 const router = useRouter()
 
-const placeholder = computed(() => 'Поиск по событиям и городам…')
+const placeholder = computed(() => 'Поиск по событиям, городам, описаниям…')
 
 const results = computed(() => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return []
 
   const events = (allAttractions.value || [])
-    .filter(a => (a.name || '').toLowerCase().includes(q))
+    .filter(a => intelligentTextSearch(a.name || '', q))
     .slice(0, 8)
     .map(a => ({ type: 'event', id: a.id, label: a.name }))
 
   const cities = (citiesData.value || [])
-    .filter(c => (c.name || '').toLowerCase().includes(q))
+    .filter(c => intelligentTextSearch(c.name || '', q))
     .slice(0, 5)
     .map(c => ({ type: 'city', label: c.name }))
 

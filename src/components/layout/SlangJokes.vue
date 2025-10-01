@@ -1,12 +1,10 @@
 <template>
   <div class="local-lingo-weather">
-    <!-- Top action buttons -->
     <div class="icon-button-row">
       <button class="icon-button" @click="openDictionary" aria-label="Локальный словарь">📖</button>
       <button class="icon-button" @click="openWeather" aria-label="Погода">🌤️</button>
     </div>
 
-    <!-- Dictionary Modal -->
     <div
       v-if="showDictionary"
       class="modal-overlay"
@@ -42,7 +40,6 @@
       </div>
     </div>
 
-    <!-- Weather Modal -->
     <div
       v-if="showWeather"
       class="modal-overlay"
@@ -56,11 +53,9 @@
           <button class="close-btn" @click="closeModals" aria-label="Закрыть">✕</button>
         </div>
 
-        <!-- Loading / Error states -->
         <div v-if="loading" class="loader">Загрузка…</div>
         <div v-else-if="error" class="error">{{ error }}</div>
 
-        <!-- Weather content -->
         <div class="weather-widget" v-else-if="currentWeather" :class="theme">
           <div class="top-section">
             <div class="location-info">
@@ -124,6 +119,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { getPhrases } from '../../Data'
 const emit = defineEmits<{ (e: 'modal-toggle', open: boolean): void }>()
 
 /** -----------------------
@@ -132,13 +128,7 @@ const emit = defineEmits<{ (e: 'modal-toggle', open: boolean): void }>()
 const showDictionary = ref(false)
 const expanded = ref<number[]>([])
 
-const phrases = [
-  { short: 'Кёниг', full: 'Кёнигсберг кратко', examples: ['"1200" – парковка', '"Южный" – вокзал'] },
-  { short: 'Башня', full: 'Форт или сторожевая башня', examples: ['Башня Дона'] },
-  { short: 'Балтон', full: 'Балтийская набережная', examples: ['Поехали в Балтон!'] },
-  { short: 'Победка', full: 'Улица Победы', examples: ['Живу на Победке'] },
-  { short: 'Коса', full: 'Куршская Коса', examples: ['Поехали на Косу'] },
-]
+const phrases = getPhrases()
 
 const toggleExpand = (index: number) => {
   const i = expanded.value.indexOf(index)
